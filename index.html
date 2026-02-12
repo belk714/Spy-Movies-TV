@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🕵️ Spy Movies & TV Tracker</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0a0f;--card:#151520;--card-hover:#1a1a2e;--accent:#e63946;--accent2:#457b9d;--text:#e0e0e0;--text-dim:#888;--gold:#f4a261;--green:#2a9d8f;--border:#252535;--input-bg:#1a1a28;--tag-bg:#252540}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+a{color:var(--accent2);text-decoration:none}
+
+/* Header */
+.header{background:linear-gradient(135deg,#0d0d1a 0%,#1a1a2e 100%);padding:24px 20px 16px;text-align:center;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;backdrop-filter:blur(10px)}
+.header h1{font-size:1.8rem;margin-bottom:4px;background:linear-gradient(135deg,var(--accent),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.header p{color:var(--text-dim);font-size:.85rem}
+.stats{display:flex;gap:16px;justify-content:center;margin-top:10px;flex-wrap:wrap}
+.stat{font-size:.8rem;color:var(--text-dim)}.stat b{color:var(--gold)}
+
+/* Search & Controls */
+.controls{max-width:1400px;margin:0 auto;padding:16px 16px 0}
+.search-row{display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.search-row input{flex:1;min-width:200px;padding:10px 14px;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:.95rem;outline:none}
+.search-row input:focus{border-color:var(--accent2)}
+.sort-select{padding:10px 14px;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:.85rem;outline:none;cursor:pointer}
+
+/* Filter bar */
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+.filter-group{display:flex;gap:4px;flex-wrap:wrap}
+.fbtn{padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:var(--input-bg);color:var(--text-dim);font-size:.8rem;cursor:pointer;transition:all .2s;white-space:nowrap}
+.fbtn:hover{border-color:var(--accent2);color:var(--text)}
+.fbtn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.fbtn.active-alt{background:var(--accent2);border-color:var(--accent2);color:#fff}
+.filter-label{font-size:.75rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;margin-right:4px;align-self:center}
+.filter-sep{width:1px;height:24px;background:var(--border);margin:0 4px;align-self:center}
+
+/* Grid */
+.grid{max-width:1400px;margin:0 auto;padding:0 16px 80px;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.no-results{grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--text-dim);font-size:1.1rem}
+
+/* Card */
+.card{background:var(--card);border-radius:12px;overflow:hidden;border:1px solid var(--border);transition:transform .2s,border-color .2s;cursor:pointer;position:relative}
+.card:hover{transform:translateY(-3px);border-color:var(--accent2)}
+.card.seen{opacity:.7}.card.seen .seen-badge{display:flex}
+.seen-badge{display:none;position:absolute;top:10px;right:10px;background:var(--green);color:#fff;font-size:.7rem;padding:4px 10px;border-radius:12px;font-weight:600;z-index:2;align-items:center;gap:4px}
+.card-top{display:flex;gap:12px;padding:12px 12px 0}
+.poster{width:100px;min-width:100px;height:150px;border-radius:8px;object-fit:cover;background:var(--input-bg)}
+.poster-placeholder{width:100px;min-width:100px;height:150px;border-radius:8px;background:var(--input-bg);display:flex;align-items:center;justify-content:center;font-size:2rem}
+.card-info{flex:1;min-width:0}
+.card-title{font-size:1rem;font-weight:700;margin-bottom:4px;line-height:1.3}
+.card-meta{font-size:.78rem;color:var(--text-dim);margin-bottom:6px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:.7rem;font-weight:600}
+.badge-movie{background:#e6394620;color:var(--accent)}
+.badge-tv{background:#457b9d20;color:var(--accent2)}
+.rating{color:var(--gold);font-weight:700;font-size:.85rem}
+.card-overview{font-size:.78rem;color:var(--text-dim);line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;margin-top:4px}
+.card-bottom{padding:10px 12px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.tags{display:flex;gap:4px;flex-wrap:wrap;flex:1}
+.tag{font-size:.65rem;padding:3px 8px;background:var(--tag-bg);border-radius:10px;color:var(--text-dim);white-space:nowrap}
+.card-actions{display:flex;gap:6px;align-items:center}
+.btn-seen{padding:5px 12px;border-radius:16px;border:1px solid var(--border);background:transparent;color:var(--text-dim);font-size:.72rem;cursor:pointer;transition:all .2s;white-space:nowrap}
+.btn-seen:hover{border-color:var(--green);color:var(--green)}
+.card.seen .btn-seen{background:var(--green);border-color:var(--green);color:#fff}
+.btn-link{padding:5px 10px;border-radius:16px;border:1px solid var(--border);background:transparent;color:var(--text-dim);font-size:.72rem;cursor:pointer;text-decoration:none;transition:all .2s}
+.btn-link:hover{border-color:var(--accent2);color:var(--accent2)}
+
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:200;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal{background:var(--card);border-radius:16px;max-width:600px;width:100%;max-height:90vh;overflow-y:auto;border:1px solid var(--border);position:relative}
+.modal-close{position:absolute;top:12px;right:12px;background:none;border:none;color:var(--text);font-size:1.5rem;cursor:pointer;z-index:2;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--input-bg)}
+.modal-poster{width:100%;height:300px;object-fit:cover}
+.modal-body{padding:20px}
+.modal-body h2{font-size:1.4rem;margin-bottom:8px}
+.modal-body .card-meta{margin-bottom:12px}
+.modal-body .card-overview{-webkit-line-clamp:unset;font-size:.9rem;line-height:1.7;margin-bottom:16px}
+.modal-body .tags{margin-bottom:16px}
+.modal-actions{display:flex;gap:10px;flex-wrap:wrap}
+
+/* Mobile */
+@media(max-width:600px){
+.header h1{font-size:1.4rem}
+.grid{grid-template-columns:1fr}
+.card-top{padding:10px 10px 0}
+.filters{gap:6px}
+.fbtn{padding:5px 10px;font-size:.75rem}
+}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* Seen filter buttons */
+.seen-filter .fbtn.active-green{background:var(--green);border-color:var(--green);color:#fff}
+</style>
+</head>
+<body>
+
+<div class="header">
+<h1>🕵️ Spy Movies & TV Tracker</h1>
+<p>Track your journey through the world of espionage cinema</p>
+<div class="stats">
+<span class="stat">📽️ <b id="totalCount">0</b> titles</span>
+<span class="stat">✅ <b id="seenCount">0</b> seen</span>
+<span class="stat">📋 <b id="unseenCount">0</b> to watch</span>
+<span class="stat">⭐ <b id="avgRating">0</b> avg rating</span>
+</div>
+</div>
+
+<div class="controls">
+<div class="search-row">
+<input type="text" id="search" placeholder="🔍 Search titles, actors, directors...">
+<select class="sort-select" id="sortBy">
+<option value="rating-desc">⭐ Rating (High→Low)</option>
+<option value="rating-asc">⭐ Rating (Low→High)</option>
+<option value="year-desc">📅 Year (Newest)</option>
+<option value="year-asc">📅 Year (Oldest)</option>
+<option value="title-asc">🔤 Title (A→Z)</option>
+<option value="title-desc">🔤 Title (Z→A)</option>
+</select>
+</div>
+<div class="filters">
+<span class="filter-label">Type</span>
+<div class="filter-group" id="typeFilter">
+<button class="fbtn active" data-val="all">All</button>
+<button class="fbtn" data-val="movie">🎬 Movies</button>
+<button class="fbtn" data-val="tv">📺 TV</button>
+</div>
+<div class="filter-sep"></div>
+<span class="filter-label">Language</span>
+<div class="filter-group" id="langFilter">
+<button class="fbtn active" data-val="all">All</button>
+<button class="fbtn" data-val="en">English</button>
+<button class="fbtn" data-val="intl">International</button>
+</div>
+<div class="filter-sep"></div>
+<span class="filter-label">Decade</span>
+<div class="filter-group" id="decadeFilter">
+<button class="fbtn active" data-val="all">All</button>
+<button class="fbtn" data-val="1960">60s</button>
+<button class="fbtn" data-val="1970">70s</button>
+<button class="fbtn" data-val="1980">80s</button>
+<button class="fbtn" data-val="1990">90s</button>
+<button class="fbtn" data-val="2000">00s</button>
+<button class="fbtn" data-val="2010">10s</button>
+<button class="fbtn" data-val="2020">20s</button>
+</div>
+<div class="filter-sep"></div>
+<span class="filter-label">Min Rating</span>
+<div class="filter-group" id="ratingFilter">
+<button class="fbtn active" data-val="0">Any</button>
+<button class="fbtn" data-val="6">6+</button>
+<button class="fbtn" data-val="7">7+</button>
+<button class="fbtn" data-val="8">8+</button>
+</div>
+<div class="filter-sep"></div>
+<span class="filter-label">Status</span>
+<div class="filter-group seen-filter" id="seenFilter">
+<button class="fbtn active" data-val="all">All</button>
+<button class="fbtn" data-val="seen">✅ Seen</button>
+<button class="fbtn" data-val="unseen">📋 Unseen</button>
+</div>
+</div>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<div class="modal-overlay" id="modal">
+<div class="modal">
+<button class="modal-close" onclick="closeModal()">×</button>
+<img class="modal-poster" id="modalPoster" src="" alt="">
+<div class="modal-body">
+<h2 id="modalTitle"></h2>
+<div class="card-meta" id="modalMeta"></div>
+<p class="card-overview" id="modalOverview"></p>
+<div class="tags" id="modalTags"></div>
+<div class="modal-actions" id="modalActions"></div>
+</div>
+</div>
+</div>
+
+<script>
+const DATA=[
+{id:1,title:"Casino Royale",year:2006,type:"movie",lang:"en",rating:8.0,runtime:144,poster:"https://image.tmdb.org/t/p/w300/dli0XBGZUH9z0VKPp1Dxt7NuPPo.jpg",overview:"Armed with a license to kill, Secret Agent James Bond sets out on his first mission as 007, and must defeat a private banker funding terrorists in a high-stakes game of poker at Casino Royale.",tags:["action","bond","cold-war","thriller"],imdb:"tt0381061",trailer:"https://www.youtube.com/watch?v=36mnx8dBbGE",director:"Martin Campbell",cast:"Daniel Craig, Eva Green"},
+{id:2,title:"Skyfall",year:2012,type:"movie",lang:"en",rating:7.8,runtime:143,poster:"https://image.tmdb.org/t/p/w300/cjRePDmIxBfEJBYDwead4MiGQms.jpg",overview:"When Bond's latest assignment goes gravely wrong, agents around the world are exposed and MI6 is attacked, forcing M to relocate the agency. Bond must track down and destroy the threat, no matter how personal the cost.",tags:["action","bond","thriller"],imdb:"tt1074638",trailer:"https://www.youtube.com/watch?v=6kw1UVovByw",director:"Sam Mendes",cast:"Daniel Craig, Javier Bardem"},
+{id:3,title:"GoldenEye",year:1995,type:"movie",lang:"en",rating:7.2,runtime:130,poster:"https://image.tmdb.org/t/p/w300/z0ljRnNxIO7CBtYlEWHpI1MVmMV.jpg",overview:"When a deadly satellite weapon is stolen, Bond must outwit a former ally turned villain to prevent a global economic meltdown.",tags:["action","bond","cold-war","thriller"],imdb:"tt0113189",trailer:"https://www.youtube.com/watch?v=MM5E6wMiSes",director:"Martin Campbell",cast:"Pierce Brosnan, Sean Bean"},
+{id:4,title:"Goldfinger",year:1964,type:"movie",lang:"en",rating:7.7,runtime:110,poster:"https://image.tmdb.org/t/p/w300/bGAjjBwMIlI71bKINrOe6bJCIAp.jpg",overview:"Investigating gold smuggler Auric Goldfinger, Bond uncovers a plot to contaminate the Fort Knox gold reserve.",tags:["action","bond","classic","thriller"],imdb:"tt0058150",trailer:"https://www.youtube.com/watch?v=YHEQMkOzPYg",director:"Guy Hamilton",cast:"Sean Connery, Gert Fröbe"},
+{id:5,title:"From Russia with Love",year:1963,type:"movie",lang:"en",rating:7.4,runtime:115,poster:"https://image.tmdb.org/t/p/w300/6bFdlMmxSMnxOOYrW4lqjHMwbFQ.jpg",overview:"James Bond willingly falls into an assassination plot involving a Russian beauty in order to retrieve a Soviet encryption device.",tags:["action","bond","cold-war","classic"],imdb:"tt0057076",trailer:"https://www.youtube.com/watch?v=oSFWjOs4o4s",director:"Terence Young",cast:"Sean Connery, Daniela Bianchi"},
+{id:6,title:"The Spy Who Loved Me",year:1977,type:"movie",lang:"en",rating:7.1,runtime:125,poster:"https://image.tmdb.org/t/p/w300/s8MKHOAOmOJacSiX3pvSPHdJxUP.jpg",overview:"Bond teams up with a Soviet agent to stop a megalomaniac from triggering nuclear war between East and West.",tags:["action","bond","cold-war","thriller"],imdb:"tt0076752",trailer:"https://www.youtube.com/watch?v=RF7W2VvWjKg",director:"Lewis Gilbert",cast:"Roger Moore, Barbara Bach"},
+{id:7,title:"No Time to Die",year:2021,type:"movie",lang:"en",rating:6.8,runtime:163,poster:"https://image.tmdb.org/t/p/w300/iUgygt3fscRoKWCV1d0C7FbM9TP.jpg",overview:"Bond has left active service. His peace is short-lived when CIA ally Felix Leiter enlists his help in the search for a missing scientist.",tags:["action","bond","thriller"],imdb:"tt2382320",trailer:"https://www.youtube.com/watch?v=BIhNsAtPbPI",director:"Cary Joji Fukunaga",cast:"Daniel Craig, Rami Malek"},
+{id:8,title:"The Bourne Identity",year:2002,type:"movie",lang:"en",rating:7.9,runtime:119,poster:"https://image.tmdb.org/t/p/w300/bXQIOS0xDSjNp4vEIOnX7hfir8s.jpg",overview:"A man is picked up by a fishing boat, bullet-riddled and suffering from amnesia, before racing to elude assassins and regain his memory.",tags:["action","thriller","bourne"],imdb:"tt0258463",trailer:"https://www.youtube.com/watch?v=FpKaB5dvQ4g",director:"Doug Liman",cast:"Matt Damon, Franka Potente"},
+{id:9,title:"The Bourne Supremacy",year:2004,type:"movie",lang:"en",rating:7.7,runtime:108,poster:"https://image.tmdb.org/t/p/w300/j0qkzrEBuQkMJn2iJIjqyrJoyd5.jpg",overview:"When Jason Bourne is framed for a CIA operation gone awry, he is forced to resume his former life as a trained assassin to survive.",tags:["action","thriller","bourne"],imdb:"tt0372183",trailer:"https://www.youtube.com/watch?v=eCJsaQi36ZI",director:"Paul Greengrass",cast:"Matt Damon, Joan Allen"},
+{id:10,title:"The Bourne Ultimatum",year:2007,type:"movie",lang:"en",rating:8.0,runtime:115,poster:"https://image.tmdb.org/t/p/w300/hEb1jcHfGdODxMEF3JGoqn0B7Ld.jpg",overview:"Bourne dodges a ruthless CIA official and his agents from a new assassination program while searching for the origins of his life as a trained killer.",tags:["action","thriller","bourne"],imdb:"tt0440963",trailer:"https://www.youtube.com/watch?v=DOSHmEZfFsE",director:"Paul Greengrass",cast:"Matt Damon, Julia Stiles"},
+{id:11,title:"Tinker Tailor Soldier Spy",year:2011,type:"movie",lang:"en",rating:7.1,runtime:127,poster:"https://image.tmdb.org/t/p/w300/onLSkkMRoPfv1UVPMDcr4B0JYqC.jpg",overview:"In the bleak days of the Cold War, espionage veteran George Smiley is forced from semi-retirement to uncover a Soviet agent within MI6.",tags:["cold-war","thriller","drama","le-carre"],imdb:"tt1340800",trailer:"https://www.youtube.com/watch?v=2dlcSNuFkQs",director:"Tomas Alfredson",cast:"Gary Oldman, Colin Firth"},
+{id:12,title:"The Spy Who Came in from the Cold",year:1965,type:"movie",lang:"en",rating:7.6,runtime:112,poster:"https://image.tmdb.org/t/p/w300/bk5v3jRMPaE70R0S8XUK6oMKvIC.jpg",overview:"British agent Alec Leamas is tired of the Cold War and wants to come in from the cold, but is talked into one final dangerous mission.",tags:["cold-war","drama","classic","le-carre"],imdb:"tt0059749",trailer:"https://www.youtube.com/watch?v=YPQjCFS5K4w",director:"Martin Ritt",cast:"Richard Burton, Claire Bloom"},
+{id:13,title:"Bridge of Spies",year:2015,type:"movie",lang:"en",rating:7.6,runtime:141,poster:"https://image.tmdb.org/t/p/w300/xjj61bqYS8K6pHyD9UjsYKZ2RLI.jpg",overview:"During the Cold War, an American lawyer is recruited to defend an arrested Soviet spy in court, then help the CIA facilitate an exchange of the spy for a captured American U-2 pilot.",tags:["cold-war","drama","thriller","true-story"],imdb:"tt3682448",trailer:"https://www.youtube.com/watch?v=7JnC2LHJzPM",director:"Steven Spielberg",cast:"Tom Hanks, Mark Rylance"},
+{id:14,title:"Munich",year:2005,type:"movie",lang:"en",rating:7.5,runtime:164,poster:"https://image.tmdb.org/t/p/w300/m3YpeZ8mCoWaFCVhfkd5GWgcexP.jpg",overview:"After the 1972 Munich Olympics massacre, a secret Israeli squad is assigned to track down and assassinate the 11 Palestinians responsible.",tags:["thriller","drama","true-story","mossad"],imdb:"tt0408306",trailer:"https://www.youtube.com/watch?v=_daIKjwpSo8",director:"Steven Spielberg",cast:"Eric Bana, Daniel Craig"},
+{id:15,title:"Mission: Impossible",year:1996,type:"movie",lang:"en",rating:7.1,runtime:110,poster:"https://image.tmdb.org/t/p/w300/1PVKS8BK2kVFBmpkflTTMj31VGr.jpg",overview:"An American agent, framed for the deaths of his espionage team, goes on the run and discovers the existence of a mole within the CIA.",tags:["action","thriller","mission-impossible"],imdb:"tt0117060",trailer:"https://www.youtube.com/watch?v=XPDcnB3Mkso",director:"Brian De Palma",cast:"Tom Cruise, Jon Voight"},
+{id:16,title:"Mission: Impossible – Fallout",year:2018,type:"movie",lang:"en",rating:7.7,runtime:147,poster:"https://image.tmdb.org/t/p/w300/AkJQpZp9WoNdj7pLYSj1L0RcMMN.jpg",overview:"Ethan Hunt and his IMF team race against time after a mission gone wrong to prevent a nuclear catastrophe.",tags:["action","thriller","mission-impossible"],imdb:"tt4912910",trailer:"https://www.youtube.com/watch?v=wb49-oV0F78",director:"Christopher McQuarrie",cast:"Tom Cruise, Henry Cavill"},
+{id:17,title:"Mission: Impossible – Rogue Nation",year:2015,type:"movie",lang:"en",rating:7.4,runtime:131,poster:"https://image.tmdb.org/t/p/w300/z2yLOpw0GwBh0NoY5IgnjhgoUN4.jpg",overview:"Ethan and his team take on their most impossible mission yet—eradicating the Syndicate, a dangerous rogue network of trained operatives.",tags:["action","thriller","mission-impossible"],imdb:"tt2381249",trailer:"https://www.youtube.com/watch?v=gOW_azQbOjw",director:"Christopher McQuarrie",cast:"Tom Cruise, Rebecca Ferguson"},
+{id:18,title:"Atomic Blonde",year:2017,type:"movie",lang:"en",rating:6.7,runtime:115,poster:"https://image.tmdb.org/t/p/w300/kV9R5h0Yct1kR8Hf3KIfrIn8z0i.jpg",overview:"An undercover MI6 agent is sent to Berlin during the Cold War to investigate the murder of a fellow agent and recover a missing list of double agents.",tags:["action","cold-war","thriller"],imdb:"tt2406566",trailer:"https://www.youtube.com/watch?v=yIUube1pSC0",director:"David Leitch",cast:"Charlize Theron, James McAvoy"},
+{id:19,title:"Spy Game",year:2001,type:"movie",lang:"en",rating:7.0,runtime:126,poster:"https://image.tmdb.org/t/p/w300/kVGMzHltpHeRwFUPJbBYch2JmTP.jpg",overview:"Retiring CIA officer Nathan Muir recalls his training of Tom Bishop while working against the clock to save him from a Chinese prison.",tags:["thriller","drama","cold-war"],imdb:"tt0266987",trailer:"https://www.youtube.com/watch?v=zzC9X8Jkc0s",director:"Tony Scott",cast:"Robert Redford, Brad Pitt"},
+{id:20,title:"Three Days of the Condor",year:1975,type:"movie",lang:"en",rating:7.4,runtime:117,poster:"https://image.tmdb.org/t/p/w300/xPqDCqyFIi8sLv8Q2Xv3Cj3RXhH.jpg",overview:"A bookish CIA researcher finds all his co-workers dead and must outwit those responsible until he figures out who he can trust.",tags:["thriller","cold-war","classic"],imdb:"tt0073802",trailer:"https://www.youtube.com/watch?v=JhARxh0aV3g",director:"Sydney Pollack",cast:"Robert Redford, Faye Dunaway"},
+{id:21,title:"The Manchurian Candidate",year:1962,type:"movie",lang:"en",rating:7.9,runtime:126,poster:"https://image.tmdb.org/t/p/w300/l7tEuJm7U3BDz6aLoICFbR0HJMN.jpg",overview:"A former prisoner of war is brainwashed as an unwitting assassin for a Communist conspiracy.",tags:["cold-war","thriller","classic","drama"],imdb:"tt0056218",trailer:"https://www.youtube.com/watch?v=bU71NWML91M",director:"John Frankenheimer",cast:"Frank Sinatra, Laurence Harvey"},
+{id:22,title:"North by Northwest",year:1959,type:"movie",lang:"en",rating:8.3,runtime:136,poster:"https://image.tmdb.org/t/p/w300/cXQH2u7wMMJmEm9fR6w2WJbQRoV.jpg",overview:"A hapless New York advertising executive is mistaken for a government agent by a group of foreign spies, and is pursued across the country.",tags:["thriller","classic","hitchcock"],imdb:"tt0053125",trailer:"https://www.youtube.com/watch?v=1ON67uYwGaw",director:"Alfred Hitchcock",cast:"Cary Grant, Eva Marie Saint"},
+{id:23,title:"The 39 Steps",year:1935,type:"movie",lang:"en",rating:7.6,runtime:86,poster:"https://image.tmdb.org/t/p/w300/3cMQaUiBVpBqGKii8JDDuzZ6aYd.jpg",overview:"A man in London tries to help a counter-espionage agent, but then finds himself on the run across Scotland when the agent is killed.",tags:["thriller","classic","hitchcock"],imdb:"tt0026029",trailer:"https://www.youtube.com/watch?v=kCdPkxR-jPw",director:"Alfred Hitchcock",cast:"Robert Donat, Madeleine Carroll"},
+{id:24,title:"Notorious",year:1946,type:"movie",lang:"en",rating:7.9,runtime:102,poster:"https://image.tmdb.org/t/p/w300/rPlS4YJlnBMjKPGcULfMg4mhLOi.jpg",overview:"A woman is asked to spy on a group of her father's Nazi friends in South America. How far will she have to go to get their confidence?",tags:["thriller","classic","hitchcock","romance"],imdb:"tt0038787",trailer:"https://www.youtube.com/watch?v=k0GRQX1MXvA",director:"Alfred Hitchcock",cast:"Cary Grant, Ingrid Bergman"},
+{id:25,title:"Argo",year:2012,type:"movie",lang:"en",rating:7.7,runtime:120,poster:"https://image.tmdb.org/t/p/w300/oVMshWgui0YIiVbGIR3TZ7fVjgG.jpg",overview:"Acting under the cover of a Hollywood producer scouting a location for a science fiction film, a CIA agent launches a dangerous operation to rescue six Americans from Tehran during the 1979 Iran hostage crisis.",tags:["thriller","drama","true-story","cia"],imdb:"tt1024648",trailer:"https://www.youtube.com/watch?v=HfVPUBKfeZg",director:"Ben Affleck",cast:"Ben Affleck, Bryan Cranston"},
+{id:26,title:"Zero Dark Thirty",year:2012,type:"movie",lang:"en",rating:7.4,runtime:157,poster:"https://image.tmdb.org/t/p/w300/oVwOA5vBOEH3aVPyIUr3QmFC18i.jpg",overview:"A chronicle of the decade-long hunt for al-Qaeda terrorist leader Osama bin Laden after the 2001 September 11 attacks.",tags:["thriller","drama","true-story","cia"],imdb:"tt1790885",trailer:"https://www.youtube.com/watch?v=YxC0JnRnTaw",director:"Kathryn Bigelow",cast:"Jessica Chastain, Joel Edgerton"},
+{id:27,title:"The Conversation",year:1974,type:"movie",lang:"en",rating:7.8,runtime:113,poster:"https://image.tmdb.org/t/p/w300/bNZFcO0XxOH24vCATWsgcbxrOXj.jpg",overview:"A paranoid, secretive surveillance expert has a crisis of conscience when he suspects that the couple he is spying on will be murdered.",tags:["thriller","drama","classic","surveillance"],imdb:"tt0071360",trailer:"https://www.youtube.com/watch?v=tMIrBRPa8B0",director:"Francis Ford Coppola",cast:"Gene Hackman, John Cazale"},
+{id:28,title:"The Ipcress File",year:1965,type:"movie",lang:"en",rating:7.2,runtime:109,poster:"https://image.tmdb.org/t/p/w300/rNlgOjxSOFxNKJCHwLy8C8tKf93.jpg",overview:"After a prominent scientist is kidnapped, Harry Palmer, an insubordinate British spy, is tasked with tracking him down.",tags:["cold-war","thriller","classic","british"],imdb:"tt0059319",trailer:"https://www.youtube.com/watch?v=pY6sReIcOKk",director:"Sidney J. Furie",cast:"Michael Caine, Nigel Green"},
+{id:29,title:"The Constant Gardener",year:2005,type:"movie",lang:"en",rating:7.4,runtime:129,poster:"https://image.tmdb.org/t/p/w300/qMq0odLqXKMYISJ9LkJm3g6M4z6.jpg",overview:"A widower is determined to get to the bottom of a potentially explosive secret involving his wife's murder and her activist work.",tags:["thriller","drama","le-carre"],imdb:"tt0387131",trailer:"https://www.youtube.com/watch?v=d-cB1JRwI7Y",director:"Fernando Meirelles",cast:"Ralph Fiennes, Rachel Weisz"},
+{id:30,title:"The Lives of Others",year:2006,type:"movie",lang:"de",rating:8.4,runtime:137,poster:"https://image.tmdb.org/t/p/w300/nF5FvH0EQzUhhlRO3BUwNFqwzEL.jpg",overview:"In 1984 East Berlin, a Stasi officer begins to question his loyalty to the party when he is ordered to surveil a playwright and his lover.",tags:["cold-war","drama","surveillance","german"],imdb:"tt0405094",trailer:"https://www.youtube.com/watch?v=n3_iLOp6IhM",director:"Florian Henckel von Donnersmarck",cast:"Ulrich Mühe, Sebastian Koch"},
+{id:31,title:"The Americans",year:2013,type:"tv",lang:"en",rating:8.4,runtime:45,poster:"https://image.tmdb.org/t/p/w300/qa32bWCIFwUlBw70dISfRPSbsFJ.jpg",overview:"Two Soviet KGB officers pose as an idealistic American married couple in the suburbs of Washington D.C. during the Reagan era.",tags:["cold-war","drama","thriller","kgb"],imdb:"tt2149175",trailer:"https://www.youtube.com/watch?v=jTh0F5YHHSA",director:"Joe Weisberg",cast:"Keri Russell, Matthew Rhys"},
+{id:32,title:"Homeland",year:2011,type:"tv",lang:"en",rating:8.3,runtime:55,poster:"https://image.tmdb.org/t/p/w300/6GDW4EsqP9GvMwsfsueDrO3WfEQ.jpg",overview:"A bipolar CIA operative becomes convinced a prisoner of war has been turned by al-Qaeda and is planning to carry out a terrorist attack on American soil.",tags:["thriller","drama","cia","terrorism"],imdb:"tt1796960",trailer:"https://www.youtube.com/watch?v=KyFmL3jQxV0",director:"Howard Gordon",cast:"Claire Danes, Damian Lewis"},
+{id:33,title:"Le Bureau des Légendes",year:2015,type:"tv",lang:"fr",rating:8.6,runtime:52,poster:"https://image.tmdb.org/t/p/w300/1iy0bFSuRGMp9JDnKpVN3Q7lVBb.jpg",overview:"French intelligence officers working in the DGSE navigate the dangerous world of international espionage with deep-cover agents around the world.",tags:["thriller","drama","french","undercover"],imdb:"tt4063800",trailer:"https://www.youtube.com/watch?v=0LiAi1EaY6U",director:"Éric Rochant",cast:"Mathieu Kassovitz, Sara Giraudeau"},
+{id:34,title:"The Night Manager",year:2016,type:"tv",lang:"en",rating:8.1,runtime:58,poster:"https://image.tmdb.org/t/p/w300/uaKKVkGB9HBkuPfb8iKdU7oCTP.jpg",overview:"A former British soldier is recruited by intelligence operative to infiltrate the inner circle of an international arms dealer.",tags:["thriller","drama","le-carre","british"],imdb:"tt1399664",trailer:"https://www.youtube.com/watch?v=g-ZMOgqwMYo",director:"Susanne Bier",cast:"Tom Hiddleston, Hugh Laurie"},
+{id:35,title:"Slow Horses",year:2022,type:"tv",lang:"en",rating:8.1,runtime:45,poster:"https://image.tmdb.org/t/p/w300/eBThbJcjESeChzFDdnwjMSPDqnO.jpg",overview:"Follows a team of British intelligence agents who serve in a dumping ground department of MI5 known unaffectionately as Slough House.",tags:["thriller","drama","british","comedy"],imdb:"tt5875444",trailer:"https://www.youtube.com/watch?v=9V7JJfnqpDQ",director:"Mick Herron",cast:"Gary Oldman, Kristin Scott Thomas"},
+{id:36,title:"Killing Eve",year:2018,type:"tv",lang:"en",rating:8.2,runtime:42,poster:"https://image.tmdb.org/t/p/w300/qJBITySqDMseg3gONYBRC4JFqG7.jpg",overview:"A bored MI5 security officer begins to track down a psychopathic assassin, and the two develop a mutual obsession.",tags:["thriller","action","british","cat-and-mouse"],imdb:"tt7016936",trailer:"https://www.youtube.com/watch?v=xLPn0FDMJiQ",director:"Phoebe Waller-Bridge",cast:"Sandra Oh, Jodie Comer"},
+{id:37,title:"24",year:2001,type:"tv",lang:"en",rating:8.4,runtime:44,poster:"https://image.tmdb.org/t/p/w300/iqaIDHwi7hM3MMLBtk9dJE2hu3v.jpg",overview:"Jack Bauer, Director of Field Ops for the Counter-Terrorist Unit of Los Angeles, races against the clock to subvert terrorist plots.",tags:["action","thriller","terrorism","cia"],imdb:"tt0285331",trailer:"https://www.youtube.com/watch?v=GBWlgB_luhY",director:"Joel Surnow",cast:"Kiefer Sutherland, Mary Lynn Rajskub"},
+{id:38,title:"Alias",year:2001,type:"tv",lang:"en",rating:7.7,runtime:42,poster:"https://image.tmdb.org/t/p/w300/mZ3W87wHVBtsJFLiNWL5pNpKiW0.jpg",overview:"Sydney Bristow discovers she's been working for a criminal organization masquerading as a CIA black-ops division and becomes a double agent.",tags:["action","thriller","drama","sci-fi"],imdb:"tt0285333",trailer:"https://www.youtube.com/watch?v=F1VwsadCIZY",director:"J.J. Abrams",cast:"Jennifer Garner, Victor Garber"},
+{id:39,title:"Spooks",year:2002,type:"tv",lang:"en",rating:8.3,runtime:60,poster:"https://image.tmdb.org/t/p/w300/f8R0gHxj0v2x9I8Y1pbNaZLpRhz.jpg",overview:"The daily activities of a group of officers at the British Security Service's counter-terrorism division, MI5.",tags:["thriller","drama","british","terrorism"],imdb:"tt0160904",trailer:"https://www.youtube.com/watch?v=3TtBb0mI9VA",director:"David Wolstencroft",cast:"Peter Firth, Keeley Hawes"},
+{id:40,title:"The Prisoner",year:1967,type:"tv",lang:"en",rating:8.4,runtime:50,poster:"https://image.tmdb.org/t/p/w300/dYW1LfvkEd1EMkKTVPqCU72PSQP.jpg",overview:"After resigning, a secret agent is abducted and taken to a mysterious village where he is known only as Number Six.",tags:["thriller","classic","sci-fi","british","psychological"],imdb:"tt0061287",trailer:"https://www.youtube.com/watch?v=5jYQ0VwGPVs",director:"Patrick McGoohan",cast:"Patrick McGoohan, Angelo Muscat"},
+{id:41,title:"Kingsman: The Secret Service",year:2014,type:"movie",lang:"en",rating:7.7,runtime:129,poster:"https://image.tmdb.org/t/p/w300/ay7xwrNgfGqRpE0kFpYqfFLBqIq.jpg",overview:"A spy organization recruits an unrefined but promising street kid into the agency's training program, while a global threat emerges from a tech genius.",tags:["action","comedy","british"],imdb:"tt2802144",trailer:"https://www.youtube.com/watch?v=m4NCribDx4U",director:"Matthew Vaughn",cast:"Colin Firth, Taron Egerton"},
+{id:42,title:"Austin Powers: International Man of Mystery",year:1997,type:"movie",lang:"en",rating:7.0,runtime:89,poster:"https://image.tmdb.org/t/p/w300/5uBqKwJhmoF0Y2XMSjUxajHMrZx.jpg",overview:"A 1960s hipster secret agent is cryogenically frozen and reawakened in the 1990s to battle his nemesis Dr. Evil.",tags:["comedy","action","parody"],imdb:"tt0118655",trailer:"https://www.youtube.com/watch?v=ePe8dUuHJIc",director:"Jay Roach",cast:"Mike Myers, Elizabeth Hurley"},
+{id:43,title:"The Man from U.N.C.L.E.",year:2015,type:"movie",lang:"en",rating:7.3,runtime:116,poster:"https://image.tmdb.org/t/p/w300/iGKJlThmbl8DIjJhfJwHjCx8RIR.jpg",overview:"In the early 1960s, CIA agent Napoleon Solo and KGB operative Illya Kuryakin participate in a joint mission against a mysterious criminal organization.",tags:["action","cold-war","comedy","thriller"],imdb:"tt1638355",trailer:"https://www.youtube.com/watch?v=wZMRp3osBt0",director:"Guy Ritchie",cast:"Henry Cavill, Armie Hammer"},
+{id:44,title:"Red Sparrow",year:2018,type:"movie",lang:"en",rating:6.6,runtime:140,poster:"https://image.tmdb.org/t/p/w300/uZgJBhhqXg5E11LkA4x2VmPsEBC.jpg",overview:"A young Russian intelligence officer is assigned to seduce a CIA agent, but she proves to be more than anyone expected.",tags:["thriller","drama","russian"],imdb:"tt2873282",trailer:"https://www.youtube.com/watch?v=FrKym-n5KHs",director:"Francis Lawrence",cast:"Jennifer Lawrence, Joel Edgerton"},
+{id:45,title:"Salt",year:2010,type:"movie",lang:"en",rating:6.4,runtime:100,poster:"https://image.tmdb.org/t/p/w300/eWUjxSz4gv9mXJfEXoYKitg5eFG.jpg",overview:"A CIA agent goes on the run after a defector accuses her of being a Russian sleeper agent.",tags:["action","thriller"],imdb:"tt0944835",trailer:"https://www.youtube.com/watch?v=QKlhWa0F4Ew",director:"Phillip Noyce",cast:"Angelina Jolie, Liev Schreiber"},
+{id:46,title:"Sicario",year:2015,type:"movie",lang:"en",rating:7.6,runtime:121,poster:"https://image.tmdb.org/t/p/w300/kMF0PJ1c3jqnqPXZEA9Gmpr6lDP.jpg",overview:"An idealistic FBI agent is enlisted by a government task force to aid in the escalating war against drugs at the border area between the U.S. and Mexico.",tags:["thriller","action","crime"],imdb:"tt3397884",trailer:"https://www.youtube.com/watch?v=G8tlEjv2dCk",director:"Denis Villeneuve",cast:"Emily Blunt, Benicio del Toro"},
+{id:47,title:"Body of Lies",year:2008,type:"movie",lang:"en",rating:7.0,runtime:128,poster:"https://image.tmdb.org/t/p/w300/kVvGz6jZOEkTFfjeCbPCXb80wcx.jpg",overview:"A CIA operative working in the Middle East navigates deception and danger with his handler back in Washington.",tags:["thriller","action","cia","terrorism"],imdb:"tt0758774",trailer:"https://www.youtube.com/watch?v=LUp8gEw7eIQ",director:"Ridley Scott",cast:"Leonardo DiCaprio, Russell Crowe"},
+{id:48,title:"Syriana",year:2005,type:"movie",lang:"en",rating:6.9,runtime:128,poster:"https://image.tmdb.org/t/p/w300/pTy6fGpLhFiXuJHIYzaYxuSG7QW.jpg",overview:"A politically charged epic about the state of the oil industry in the hands of those who broker power through it.",tags:["thriller","drama","political","cia"],imdb:"tt0365737",trailer:"https://www.youtube.com/watch?v=6JB0Ubyx_Jg",director:"Stephen Gaghan",cast:"George Clooney, Matt Damon"},
+{id:49,title:"A Most Wanted Man",year:2014,type:"movie",lang:"en",rating:6.8,runtime:122,poster:"https://image.tmdb.org/t/p/w300/c3gZXrZiCMiTmMEbqnhHhEuWgiH.jpg",overview:"A Chechen-Russian immigrant enters Hamburg's Islamic community on a mission to claim his dead father's fortune, drawing the attention of German and American intelligence agencies.",tags:["thriller","drama","le-carre","german"],imdb:"tt1972571",trailer:"https://www.youtube.com/watch?v=Lm6FOk9CbPc",director:"Anton Corbijn",cast:"Philip Seymour Hoffman, Rachel McAdams"},
+{id:50,title:"The Good Shepherd",year:2006,type:"movie",lang:"en",rating:6.7,runtime:167,poster:"https://image.tmdb.org/t/p/w300/axTKKIh2fDBTIlhkVOGqvU7pHqU.jpg",overview:"The tumultuous early history of the CIA is viewed through the prism of one man's life.",tags:["thriller","drama","cia","cold-war"],imdb:"tt0343737",trailer:"https://www.youtube.com/watch?v=IDfPsEn8pMY",director:"Robert De Niro",cast:"Matt Damon, Angelina Jolie"},
+{id:51,title:"The Departed",year:2006,type:"movie",lang:"en",rating:8.5,runtime:151,poster:"https://image.tmdb.org/t/p/w300/nT97ifVT2J1yMQmeq20Dqv60bGS.jpg",overview:"An undercover cop and a mole in the police attempt to identify each other while infiltrating an Irish gang in South Boston.",tags:["thriller","crime","drama","undercover"],imdb:"tt0407887",trailer:"https://www.youtube.com/watch?v=iQpb1LoeVUg",director:"Martin Scorsese",cast:"Leonardo DiCaprio, Matt Damon, Jack Nicholson"},
+{id:52,title:"The Third Man",year:1949,type:"movie",lang:"en",rating:8.1,runtime:93,poster:"https://image.tmdb.org/t/p/w300/oIF1XMz96lYc1q8KcWe1oHmzVMp.jpg",overview:"Pulp novelist Holly Martins travels to shadowy, postwar Vienna, only to find himself investigating the death of an old friend, Harry Lime.",tags:["thriller","classic","noir","cold-war"],imdb:"tt0041959",trailer:"https://www.youtube.com/watch?v=2oEsWi88Qv0",director:"Carol Reed",cast:"Orson Welles, Joseph Cotten"},
+{id:53,title:"The Hunt for Red October",year:1990,type:"movie",lang:"en",rating:7.5,runtime:135,poster:"https://image.tmdb.org/t/p/w300/rHHSx7MNSluTlXSRwYbMT7EXlic.jpg",overview:"A new, technologically-superior Soviet nuclear submarine heads for the U.S. coast, and only one American knows the truth: its commander plans to defect.",tags:["thriller","cold-war","action","naval"],imdb:"tt0099810",trailer:"https://www.youtube.com/watch?v=OLCL6OYbSTw",director:"John McTiernan",cast:"Sean Connery, Alec Baldwin"},
+{id:54,title:"Enemy of the State",year:1998,type:"movie",lang:"en",rating:7.3,runtime:132,poster:"https://image.tmdb.org/t/p/w300/gxC7UWz9klFrWMGfZ4icgvAFQtr.jpg",overview:"A lawyer becomes a target by a corrupt politician and his NSA goons when he accidentally receives key evidence to a political murder.",tags:["thriller","action","surveillance","nsa"],imdb:"tt0120660",trailer:"https://www.youtube.com/watch?v=DSRL7t6ckBU",director:"Tony Scott",cast:"Will Smith, Gene Hackman"},
+{id:55,title:"Hanna",year:2011,type:"movie",lang:"en",rating:6.8,runtime:111,poster:"https://image.tmdb.org/t/p/w300/fP7al7b7Dsy3lPItD6Kp2x7PXER.jpg",overview:"A 16-year-old girl raised by her father to be the perfect assassin is dispatched on a mission across Europe, tracked by a ruthless intelligence operative.",tags:["action","thriller","drama"],imdb:"tt0993842",trailer:"https://www.youtube.com/watch?v=kJMYbn7FtWU",director:"Joe Wright",cast:"Saoirse Ronan, Cate Blanchett"},
+{id:56,title:"The Tailor of Panama",year:2001,type:"movie",lang:"en",rating:6.1,runtime:109,poster:"https://image.tmdb.org/t/p/w300/vf03gkb1j5JqS2z8Cc1GcJbWY83.jpg",overview:"A British spy enlists an impoverished local tailor to provide intelligence on the political situation in Panama.",tags:["thriller","drama","le-carre","comedy"],imdb:"tt0236784",trailer:"https://www.youtube.com/watch?v=CsOqRcv8gRY",director:"John Boorman",cast:"Pierce Brosnan, Geoffrey Rush"},
+{id:57,title:"Ronin",year:1998,type:"movie",lang:"en",rating:7.3,runtime:122,poster:"https://image.tmdb.org/t/p/w300/9HQyELk0FYsxENKijJOXWOFPREK.jpg",overview:"A freelancing former US intelligence agent tries to track down a mysterious package that is wanted by both the Irish and the Russians.",tags:["action","thriller","cold-war"],imdb:"tt0122690",trailer:"https://www.youtube.com/watch?v=q5WPD7URfSs",director:"John Frankenheimer",cast:"Robert De Niro, Jean Reno"},
+{id:58,title:"Charlie Wilson's War",year:2007,type:"movie",lang:"en",rating:6.8,runtime:102,poster:"https://image.tmdb.org/t/p/w300/ld1WB5OuFDhP0lEJahvVOaejMYi.jpg",overview:"A drama based on a Texas congressman Charlie Wilson's covert dealings in Afghanistan where his efforts led to Operation Cyclone.",tags:["drama","comedy","political","cia","true-story"],imdb:"tt0472062",trailer:"https://www.youtube.com/watch?v=gXbBSI_KznI",director:"Mike Nichols",cast:"Tom Hanks, Julia Roberts, Philip Seymour Hoffman"},
+{id:59,title:"Burn After Reading",year:2008,type:"movie",lang:"en",rating:7.0,runtime:96,poster:"https://image.tmdb.org/t/p/w300/8JkVH7wpqpitj4IUkSxdR2pWMcG.jpg",overview:"A disk containing the memoirs of a CIA agent ends up in the hands of two gym employees who attempt to sell it.",tags:["comedy","thriller","cia","dark-comedy"],imdb:"tt0887883",trailer:"https://www.youtube.com/watch?v=SNa6rBGLmCE",director:"Coen Brothers",cast:"Brad Pitt, George Clooney, Frances McDormand"},
+{id:60,title:"Black Book",year:2006,type:"movie",lang:"nl",rating:7.7,runtime:145,poster:"https://image.tmdb.org/t/p/w300/zFmqR3EpePPbEAqbBEqLm3Ij4GV.jpg",overview:"In the occupied Netherlands during World War II, a Jewish singer infiltrates the regional Gestapo headquarters for the Dutch resistance.",tags:["thriller","drama","war","dutch","true-story"],imdb:"tt0389557",trailer:"https://www.youtube.com/watch?v=gSXg3VZUYSA",director:"Paul Verhoeven",cast:"Carice van Houten, Sebastian Koch"},
+{id:61,title:"Army of Shadows",year:1969,type:"movie",lang:"fr",rating:8.0,runtime:145,poster:"https://image.tmdb.org/t/p/w300/2Rpi3x1jhKXQi4FfpIqI7bVwn0V.jpg",overview:"An account of the underground resistance fighters in Nazi-occupied France.",tags:["drama","war","french","classic","resistance"],imdb:"tt0064040",trailer:"https://www.youtube.com/watch?v=QYHVAxyxbJU",director:"Jean-Pierre Melville",cast:"Lino Ventura, Simone Signoret"},
+{id:62,title:"Eye in the Sky",year:2015,type:"movie",lang:"en",rating:7.3,runtime:102,poster:"https://image.tmdb.org/t/p/w300/xzJK72JuDI9Hb3VeBTggwUhV3dk.jpg",overview:"Col. Katherine Powell leads a drone operation to capture terrorists in Kenya. When a girl enters the kill zone, the Loss of a Loss becomes a Loss of a Loss debate.",tags:["thriller","drama","military","modern"],imdb:"tt2057392",trailer:"https://www.youtube.com/watch?v=xi34Knt_xPQ",director:"Gavin Hood",cast:"Helen Mirren, Aaron Paul, Alan Rickman"},
+{id:63,title:"The Courier",year:2020,type:"movie",lang:"en",rating:7.1,runtime:112,poster:"https://image.tmdb.org/t/p/w300/zFIjKtZFzhP1IfMfENbnJ2V3S3p.jpg",overview:"Cold War spy Greville Wynne and his Russian source Alex Penkovsky provide crucial intelligence to help defuse the Cuban Missile Crisis.",tags:["cold-war","drama","thriller","true-story","british"],imdb:"tt8368512",trailer:"https://www.youtube.com/watch?v=D31L8GBjBZ8",director:"Dominic Cooke",cast:"Benedict Cumberbatch, Merab Ninidze"},
+{id:64,title:"Operation Mincemeat",year:2021,type:"movie",lang:"en",rating:6.6,runtime:128,poster:"https://image.tmdb.org/t/p/w300/iDVe6fhEUaJLNbMdRq4P7ySqXVm.jpg",overview:"British intelligence uses a corpse with fake documents to deceive the Nazis about the Allied invasion of Sicily.",tags:["drama","war","true-story","british","world-war-2"],imdb:"tt1879016",trailer:"https://www.youtube.com/watch?v=Dg3baJnBqP0",director:"John Madden",cast:"Colin Firth, Matthew Macfadyen"},
+{id:65,title:"The Imitation Game",year:2014,type:"movie",lang:"en",rating:8.0,runtime:114,poster:"https://image.tmdb.org/t/p/w300/zSqJ1qFq8NXFfi7JeIYMlzyR0dx.jpg",overview:"Alan Turing, a British mathematician, joins the cryptography team to decipher German codes during World War II.",tags:["drama","thriller","true-story","british","world-war-2"],imdb:"tt2084970",trailer:"https://www.youtube.com/watch?v=nuPZUUED5uk",director:"Morten Tyldum",cast:"Benedict Cumberbatch, Keira Knightley"},
+{id:66,title:"Wrath of Man",year:2021,type:"movie",lang:"en",rating:7.1,runtime:119,poster:"https://image.tmdb.org/t/p/w300/M7SUK85sKjaStg4TKhlAVyGlz3.jpg",overview:"A cold and mysterious new security guard for a cash truck company surprises his co-workers when he unleashes precision skills during a heist.",tags:["action","thriller","crime"],imdb:"tt11083552",trailer:"https://www.youtube.com/watch?v=EI5D3HEqxDY",director:"Guy Ritchie",cast:"Jason Statham, Holt McCallany"},
+{id:67,title:"No Way Out",year:1987,type:"movie",lang:"en",rating:7.1,runtime:114,poster:"https://image.tmdb.org/t/p/w300/bpnhqIWxSTn9rbDZVdQgqH0bQE5.jpg",overview:"A Navy officer is assigned to investigate a murder, only to find himself entangled in a web of political intrigue and espionage.",tags:["thriller","cold-war","drama","political"],imdb:"tt0093640",trailer:"https://www.youtube.com/watch?v=qhLMBjcXJ60",director:"Roger Donaldson",cast:"Kevin Costner, Gene Hackman"},
+{id:68,title:"Confessions of a Dangerous Mind",year:2002,type:"movie",lang:"en",rating:7.0,runtime:113,poster:"https://image.tmdb.org/t/p/w300/8vESgIiKAhkwjIIjAhnSNJqAfhv.jpg",overview:"An adaptation of the autobiography of game show host Chuck Barris, who claimed to be a CIA assassin.",tags:["thriller","comedy","drama","cia","true-story"],imdb:"tt0270288",trailer:"https://www.youtube.com/watch?v=Lih-4OGcB2U",director:"George Clooney",cast:"Sam Rockwell, Drew Barrymore, George Clooney"},
+{id:69,title:"Infernal Affairs",year:2002,type:"movie",lang:"zh",rating:8.0,runtime:101,poster:"https://image.tmdb.org/t/p/w300/bsqGCUza4LH3VKEWB8vxv84FCKZ.jpg",overview:"A cop and a gangster find it hard to keep their undercover identities secret as both sides of the law close in on them.",tags:["thriller","crime","hong-kong","undercover"],imdb:"tt0338564",trailer:"https://www.youtube.com/watch?v=3aDWPCBOjHw",director:"Andrew Lau",cast:"Andy Lau, Tony Leung"},
+{id:70,title:"The Man Who Knew Too Much",year:1956,type:"movie",lang:"en",rating:7.4,runtime:120,poster:"https://image.tmdb.org/t/p/w300/yrMfECFzxPnLMkBiACebOeHSx3j.jpg",overview:"A family vacationing in Morocco accidentally stumbles on to an assassination plot and the couple must find their kidnapped son.",tags:["thriller","classic","hitchcock"],imdb:"tt0049470",trailer:"https://www.youtube.com/watch?v=iIkqFpFJ5vw",director:"Alfred Hitchcock",cast:"James Stewart, Doris Day"},
+{id:71,title:"Official Secrets",year:2019,type:"movie",lang:"en",rating:7.3,runtime:112,poster:"https://image.tmdb.org/t/p/w300/7g1qRlDr24C8FI3q4WlBLm65OHR.jpg",overview:"The true story of a British intelligence whistle-blower who leaked a secret memo exposing an illegal NSA spy operation.",tags:["thriller","drama","true-story","british","political"],imdb:"tt5431890",trailer:"https://www.youtube.com/watch?v=TOy0yRosBRw",director:"Gavin Hood",cast:"Keira Knightley, Matt Smith"},
+{id:72,title:"Breach",year:2007,type:"movie",lang:"en",rating:7.0,runtime:110,poster:"https://image.tmdb.org/t/p/w300/gx3XjO58FXl6NPmYEiRSsEg80i5.jpg",overview:"The true story of Robert Hanssen, an FBI agent-turned-spy who was the most damaging mole in Bureau history.",tags:["thriller","drama","true-story","fbi"],imdb:"tt0401997",trailer:"https://www.youtube.com/watch?v=8HNk7cEiEWo",director:"Billy Ray",cast:"Chris Cooper, Ryan Phillippe"},
+{id:73,title:"Telefon",year:1977,type:"movie",lang:"en",rating:6.3,runtime:103,poster:"https://image.tmdb.org/t/p/w300/A2S6QJdaLBwsACGgWfaFTU6AMHE.jpg",overview:"A KGB agent is dispatched to America to eliminate Soviet sleeper agents who are being activated by a renegade officer.",tags:["cold-war","thriller","action"],imdb:"tt0076809",trailer:"",director:"Don Siegel",cast:"Charles Bronson, Lee Remick"},
+{id:74,title:"Patriot Games",year:1992,type:"movie",lang:"en",rating:6.9,runtime:117,poster:"https://image.tmdb.org/t/p/w300/9fhQ4zq0EFP1D3D21RZ6tJpL59I.jpg",overview:"When CIA analyst Jack Ryan interferes with an IRA assassination, he becomes the target of a revenge plot.",tags:["action","thriller","cia"],imdb:"tt0105112",trailer:"https://www.youtube.com/watch?v=RwSBk7GFOSY",director:"Phillip Noyce",cast:"Harrison Ford, Sean Bean"},
+{id:75,title:"Clear and Present Danger",year:1994,type:"movie",lang:"en",rating:6.9,runtime:141,poster:"https://image.tmdb.org/t/p/w300/3V4a57GLLKdK0lIHIJR3uTPbkjR.jpg",overview:"CIA analyst Jack Ryan is drawn into an illegal war against Colombian drug lords funded by the President's inner circle.",tags:["action","thriller","cia","political"],imdb:"tt0109444",trailer:"https://www.youtube.com/watch?v=B9g46x3G0lw",director:"Phillip Noyce",cast:"Harrison Ford, Willem Dafoe"},
+{id:76,title:"Thirteen Days",year:2000,type:"movie",lang:"en",rating:7.3,runtime:145,poster:"https://image.tmdb.org/t/p/w300/yimKFuhSmWPJWDwraBcJIsSbfME.jpg",overview:"A dramatization of the Kennedy administration's response to the Cuban Missile Crisis.",tags:["thriller","drama","cold-war","political","true-story"],imdb:"tt0146309",trailer:"https://www.youtube.com/watch?v=VjK2DAwb2Kk",director:"Roger Donaldson",cast:"Kevin Costner, Bruce Greenwood"},
+{id:77,title:"The Bourne Legacy",year:2012,type:"movie",lang:"en",rating:6.6,runtime:135,poster:"https://image.tmdb.org/t/p/w300/p8mhaFzh9izW3W1JLBeKP1yfTSR.jpg",overview:"An expansion of the universe from Robert Ludlum's novels, centred on a new hero whose stakes have been triggered by the events of the previous films.",tags:["action","thriller","bourne"],imdb:"tt1528100",trailer:"https://www.youtube.com/watch?v=JMJhJB7aloE",director:"Tony Gilroy",cast:"Jeremy Renner, Rachel Weisz"},
+{id:78,title:"Spectre",year:2015,type:"movie",lang:"en",rating:6.8,runtime:148,poster:"https://image.tmdb.org/t/p/w300/hpeaHwm9LuezRfEBGBLBIFDaGwt.jpg",overview:"A cryptic message from the past sends James Bond on a rogue mission to Mexico City and eventually Rome, where he meets Lucia Sciarra.",tags:["action","bond","thriller"],imdb:"tt2379713",trailer:"https://www.youtube.com/watch?v=LTDaET-JweU",director:"Sam Mendes",cast:"Daniel Craig, Christoph Waltz"},
+{id:79,title:"Jack Ryan: Shadow Recruit",year:2014,type:"movie",lang:"en",rating:6.2,runtime:105,poster:"https://image.tmdb.org/t/p/w300/bWL9vZNuVqPklsOSYplBEkwMWOu.jpg",overview:"Jack Ryan, as a young covert CIA analyst, uncovers a Russian plot to crash the U.S. economy.",tags:["action","thriller","cia"],imdb:"tt1205537",trailer:"https://www.youtube.com/watch?v=Bj8JZX5P3NY",director:"Kenneth Branagh",cast:"Chris Pine, Kevin Costner"},
+{id:80,title:"Jack Ryan",year:2018,type:"tv",lang:"en",rating:7.8,runtime:50,poster:"https://image.tmdb.org/t/p/w300/z7x1z87Kz6vHvMSJnDjVHso4qIk.jpg",overview:"When CIA analyst Jack Ryan stumbles upon a suspicious series of bank transfers, his search for answers pulls him from the safety of his desk.",tags:["action","thriller","cia","terrorism"],imdb:"tt5057054",trailer:"https://www.youtube.com/watch?v=bIF5nkYa_UE",director:"Carlton Cuse",cast:"John Krasinski, Wendell Pierce"},
+{id:81,title:"Deutschland 83",year:2015,type:"tv",lang:"de",rating:7.8,runtime:45,poster:"https://image.tmdb.org/t/p/w300/sYlQgjvGdStCX5tjPl5LjX7Htxo.jpg",overview:"A young East German spy infiltrates the West German army at the height of the Cold War.",tags:["cold-war","thriller","drama","german"],imdb:"tt4445154",trailer:"https://www.youtube.com/watch?v=8A5GNyUoHt4",director:"Anna Winger",cast:"Jonas Nay, Maria Schrader"},
+{id:82,title:"Tinker Tailor Soldier Spy",year:1979,type:"tv",lang:"en",rating:8.4,runtime:55,poster:"https://image.tmdb.org/t/p/w300/8nALlcxkRSdjNJMVHJhQZIwQMRi.jpg",overview:"The classic BBC adaptation of John le Carré's novel featuring Alec Guinness as George Smiley hunting a Soviet mole in MI6.",tags:["cold-war","thriller","drama","le-carre","british","classic"],imdb:"tt0080297",trailer:"https://www.youtube.com/watch?v=T0pSW-JFYEM",director:"John Irvin",cast:"Alec Guinness, Ian Richardson"},
+{id:83,title:"Rubikon",year:1970,type:"tv",lang:"en",rating:7.4,runtime:42,poster:"https://image.tmdb.org/t/p/w300/xKS9PGHbVzX3BQnJcC7n2tCMSej.jpg",overview:"Will Travers discovers mysterious clues after the death of his father's colleague, which leads him into the world of conspiracies and secret intelligence.",tags:["thriller","drama","conspiracy"],imdb:"tt1389371",trailer:"",director:"Jason Horwitch",cast:"James Badge Dale, Jessica Collins",title:"Rubicon",year:2010},
+{id:84,title:"Counterpart",year:2017,type:"tv",lang:"en",rating:8.1,runtime:55,poster:"https://image.tmdb.org/t/p/w300/sDs6KOrMPfMfJ4iMCyc08GCOrMA.jpg",overview:"A UN employee discovers a crossing to a parallel dimension and must navigate the espionage of two worlds.",tags:["thriller","sci-fi","drama","cold-war"],imdb:"tt4643084",trailer:"https://www.youtube.com/watch?v=c5G5bD2Do-k",director:"Justin Marks",cast:"J.K. Simmons, Olivia Williams"},
+{id:85,title:"Berlin Station",year:2016,type:"tv",lang:"en",rating:7.3,runtime:55,poster:"https://image.tmdb.org/t/p/w300/3V0dZfYR4SsNgfOSH0T3zMNu87c.jpg",overview:"A CIA officer is assigned to the Berlin station to uncover the source of a leak that has led to the exposure of covert operations.",tags:["thriller","drama","cia"],imdb:"tt4887894",trailer:"https://www.youtube.com/watch?v=Ycm48IHFLzE",director:"Olen Steinhauer",cast:"Richard Armitage, Rhys Ifans"},
+{id:86,title:"Tehran",year:2020,type:"tv",lang:"he",rating:7.6,runtime:45,poster:"https://image.tmdb.org/t/p/w300/xAM0FGRi21gP72tBZ4Kx44c7Q9r.jpg",overview:"A Mossad agent goes deep undercover on a dangerous mission in Tehran that places her and everyone around her in dire jeopardy.",tags:["thriller","drama","mossad","middle-east"],imdb:"tt10475778",trailer:"https://www.youtube.com/watch?v=D5Yn9lIOYIE",director:"Moshe Zonder",cast:"Niv Sultan, Shaun Toub"},
+{id:87,title:"Condor",year:2018,type:"tv",lang:"en",rating:7.3,runtime:45,poster:"https://image.tmdb.org/t/p/w300/gxC75MnRRPe9t7c3lLnzPYON8HV.jpg",overview:"A young CIA analyst stumbles onto a plan that could kill millions, inspired by the film Three Days of the Condor.",tags:["thriller","cia","drama","conspiracy"],imdb:"tt5765334",trailer:"https://www.youtube.com/watch?v=5M4TkRa3a0U",director:"Todd Katzberg",cast:"Max Irons, William Hurt"},
+{id:88,title:"The Old Man",year:2022,type:"tv",lang:"en",rating:7.7,runtime:50,poster:"https://image.tmdb.org/t/p/w300/vD0j0TbCaBUjISBDrWbb5GfbTXY.jpg",overview:"A former CIA officer living off the grid must reconcile his past when an assassin arrives to eliminate him.",tags:["thriller","drama","cia","action"],imdb:"tt3853822",trailer:"https://www.youtube.com/watch?v=CYJGJYQkMCI",director:"Jonathan E. Steinberg",cast:"Jeff Bridges, John Lithgow"},
+{id:89,title:"The Spy",year:2019,type:"tv",lang:"en",rating:7.9,runtime:50,poster:"https://image.tmdb.org/t/p/w300/p9GHjKP60P32CZlLIqK0dnDh3eW.jpg",overview:"The story of Eli Cohen, Israel's most celebrated spy, who infiltrated Syria's political elite in the 1960s.",tags:["thriller","drama","mossad","true-story"],imdb:"tt5952634",trailer:"https://www.youtube.com/watch?v=QHqngFKXCfI",director:"Gideon Raff",cast:"Sacha Baron Cohen, Noah Emmerich"},
+{id:90,title:"Fauda",year:2015,type:"tv",lang:"he",rating:8.2,runtime:45,poster:"https://image.tmdb.org/t/p/w300/9rBGwsc2MeKiGlV3R23q1CQxZKw.jpg",overview:"An Israeli Defense Forces commander returns to operational duty to pursue a Hamas militant he thought he'd killed.",tags:["action","thriller","drama","middle-east"],imdb:"tt4370596",trailer:"https://www.youtube.com/watch?v=4XHD0h0YG-Y",director:"Lior Raz",cast:"Lior Raz, Hisham Suliman"},
+{id:91,title:"The Bureau",year:2020,type:"tv",lang:"en",rating:7.0,runtime:45,poster:"https://image.tmdb.org/t/p/w300/wJYBOHvGWOnkMEJaBLYS72GR1Ug.jpg",overview:"An undercover CIA intelligence officer navigates the dangerous waters of international espionage.",tags:["thriller","cia","drama"],imdb:"tt8258836",trailer:"",director:"",cast:""},
+{id:92,title:"Tenet",year:2020,type:"movie",lang:"en",rating:7.3,runtime:150,poster:"https://image.tmdb.org/t/p/w300/k68nPLbIST6NP96JmTxmZijEvCA.jpg",overview:"Armed with only one word, Tenet, and fighting for the survival of the entire world, a protagonist journeys through a twilight world of international espionage.",tags:["action","thriller","sci-fi"],imdb:"tt6723592",trailer:"https://www.youtube.com/watch?v=LdOM0x0XDMo",director:"Christopher Nolan",cast:"John David Washington, Robert Pattinson"},
+{id:93,title:"The Recruit",year:2003,type:"movie",lang:"en",rating:6.6,runtime:115,poster:"https://image.tmdb.org/t/p/w300/v6Xt6XYmxPKswDIMtcXQ4AcHLWV.jpg",overview:"A brilliant young CIA trainee is asked by his mentor to help find a mole in the Agency.",tags:["thriller","cia","drama"],imdb:"tt0292506",trailer:"https://www.youtube.com/watch?v=lIWIakZ2YlQ",director:"Roger Donaldson",cast:"Al Pacino, Colin Farrell"},
+{id:94,title:"Argylle",year:2024,type:"movie",lang:"en",rating:6.0,runtime:139,poster:"https://image.tmdb.org/t/p/w300/95VlSEfLMqeX36UVcHFuDm0Bhjn.jpg",overview:"A reclusive author who writes espionage novels gets caught up in real spy intrigues when the plots of her books get too close to reality.",tags:["action","comedy","thriller"],imdb:"tt15009428",trailer:"https://www.youtube.com/watch?v=enMPW4Q_jjw",director:"Matthew Vaughn",cast:"Bryce Dallas Howard, Sam Rockwell, Henry Cavill"},
+{id:95,title:"The Gray Man",year:2022,type:"movie",lang:"en",rating:6.5,runtime:122,poster:"https://image.tmdb.org/t/p/w300/8cXbitsS6vbc3AF1sQ42Fm4bEpa.jpg",overview:"When the CIA's most skilled operative accidentally uncovers dark agency secrets, a psychopathic former colleague puts a bounty on his head.",tags:["action","thriller","cia"],imdb:"tt1649418",trailer:"https://www.youtube.com/watch?v=BmllggGO4pM",director:"Russo Brothers",cast:"Ryan Gosling, Chris Evans, Ana de Armas"},
+{id:96,title:"Spy Kids",year:2001,type:"movie",lang:"en",rating:5.6,runtime:88,poster:"https://image.tmdb.org/t/p/w300/uvFZ3TtVrwwMqwGcTeIb6UxuDMr.jpg",overview:"The children of secret-agent parents must save them from danger.",tags:["action","comedy","family"],imdb:"tt0227538",trailer:"https://www.youtube.com/watch?v=r3-JIrKuH58",director:"Robert Rodriguez",cast:"Alexa Vega, Daryl Sabara, Antonio Banderas"},
+{id:97,title:"Spy",year:2015,type:"movie",lang:"en",rating:7.0,runtime:120,poster:"https://image.tmdb.org/t/p/w300/pJccTGJPqiDKyUE1JMGP8LT5h2J.jpg",overview:"A desk-bound CIA analyst volunteers to go undercover to infiltrate the world of a deadly arms dealer.",tags:["action","comedy"],imdb:"tt3079380",trailer:"https://www.youtube.com/watch?v=YrY3v1eDmQY",director:"Paul Feig",cast:"Melissa McCarthy, Jason Statham, Jude Law"},
+{id:98,title:"Quantum of Solace",year:2008,type:"movie",lang:"en",rating:6.6,runtime:106,poster:"https://image.tmdb.org/t/p/w300/9BpL3MxaCbGLINj7MyqNq2bJIkl.jpg",overview:"James Bond descends into mystery as he tries to stop a mysterious organisation from eliminating a country's most valuable resource.",tags:["action","bond","thriller"],imdb:"tt0830515",trailer:"https://www.youtube.com/watch?v=_UWYdp0LPQM",director:"Marc Forster",cast:"Daniel Craig, Olga Kurylenko"},
+{id:99,title:"The Recruit",year:2022,type:"tv",lang:"en",rating:7.3,runtime:50,poster:"https://image.tmdb.org/t/p/w300/sHcZ3mMHSg8XQIx4CUfXsID5WPA.jpg",overview:"A young CIA lawyer becomes entangled in dangerous international power politics when a former asset threatens to expose agency secrets.",tags:["thriller","drama","cia","action"],imdb:"tt14935334",trailer:"https://www.youtube.com/watch?v=_BaSqrIUzDM",director:"Alexi Hawley",cast:"Noah Centineo, Laura Haddock"},
+{id:100,title:"Treason",year:2022,type:"tv",lang:"en",rating:6.2,runtime:40,poster:"https://image.tmdb.org/t/p/w300/2IUdIy6J9oYSMVRZVVH9HGqP1Rh.jpg",overview:"An MI6 deputy whose past catches up with him in the form of a Russian spy forces him to question everything and everyone in his life.",tags:["thriller","drama","british","mi6"],imdb:"tt14121580",trailer:"https://www.youtube.com/watch?v=vZQqkAa-FRQ",director:"Matt Charman",cast:"Charlie Cox, Olga Kurylenko"}
+];
+
+// Fix Rubicon data
+DATA.find(d=>d.id===83).title="Rubicon";
+DATA.find(d=>d.id===83).year=2010;
+
+let seen=JSON.parse(localStorage.getItem('spy-seen')||'{}');
+let currentFilters={type:'all',lang:'all',decade:'all',rating:0,seen:'all'};
+let searchQuery='';
+let sortBy='rating-desc';
+
+function saveSeen(){localStorage.setItem('spy-seen',JSON.stringify(seen))}
+
+function toggleSeen(id,e){
+if(e)e.stopPropagation();
+seen[id]=!seen[id];
+if(!seen[id])delete seen[id];
+saveSeen();render();
+}
+
+function updateStats(){
+const filtered=getFiltered();
+const seenCount=Object.keys(seen).filter(k=>seen[k]).length;
+document.getElementById('totalCount').textContent=DATA.length;
+document.getElementById('seenCount').textContent=seenCount;
+document.getElementById('unseenCount').textContent=DATA.length-seenCount;
+const avg=DATA.reduce((s,d)=>s+d.rating,0)/DATA.length;
+document.getElementById('avgRating').textContent=avg.toFixed(1);
+}
+
+function getFiltered(){
+return DATA.filter(d=>{
+if(searchQuery){
+const q=searchQuery.toLowerCase();
+const hay=(d.title+' '+d.overview+' '+(d.cast||'')+' '+(d.director||'')+' '+d.tags.join(' ')).toLowerCase();
+if(!hay.includes(q))return false;
+}
+if(currentFilters.type!=='all'&&d.type!==currentFilters.type)return false;
+if(currentFilters.lang==='en'&&d.lang!=='en')return false;
+if(currentFilters.lang==='intl'&&d.lang==='en')return false;
+if(currentFilters.decade!=='all'){
+const dec=parseInt(currentFilters.decade);
+if(d.year<dec||d.year>=dec+10)return false;
+}
+if(d.rating<currentFilters.rating)return false;
+if(currentFilters.seen==='seen'&&!seen[d.id])return false;
+if(currentFilters.seen==='unseen'&&seen[d.id])return false;
+return true;
+});
+}
+
+function getSorted(items){
+const[key,dir]=sortBy.split('-');
+const mult=dir==='desc'?-1:1;
+return[...items].sort((a,b)=>{
+if(key==='rating')return(a.rating-b.rating)*mult;
+if(key==='year')return(a.year-b.year)*mult;
+if(key==='title')return a.title.localeCompare(b.title)*mult;
+return 0;
+});
+}
+
+function renderCard(d){
+const isSeen=seen[d.id];
+return`<div class="card ${isSeen?'seen':''}" onclick="openModal(${d.id})">
+<div class="seen-badge">✅ Seen</div>
+<div class="card-top">
+<img class="poster" src="${d.poster}" alt="${d.title}" loading="lazy" onerror="this.outerHTML='<div class=poster-placeholder>🎬</div>'">
+<div class="card-info">
+<div class="card-title">${d.title}</div>
+<div class="card-meta">
+<span class="badge ${d.type==='movie'?'badge-movie':'badge-tv'}">${d.type==='movie'?'🎬 Movie':'📺 TV'}</span>
+<span>${d.year}</span>
+<span class="rating">⭐ ${d.rating}</span>
+${d.runtime?`<span>${d.runtime}m</span>`:''}
+<span>${d.lang.toUpperCase()}</span>
+</div>
+<p class="card-overview">${d.overview}</p>
+</div>
+</div>
+<div class="card-bottom">
+<div class="tags">${d.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>
+<div class="card-actions">
+<button class="btn-seen" onclick="toggleSeen(${d.id},event)">${isSeen?'✅ Seen':'👁️ Mark Seen'}</button>
+</div>
+</div>
+</div>`;
+}
+
+function render(){
+const filtered=getSorted(getFiltered());
+const grid=document.getElementById('grid');
+if(filtered.length===0){
+grid.innerHTML='<div class="no-results">🔍 No titles match your filters. Try adjusting your search.</div>';
+}else{
+grid.innerHTML=filtered.map(renderCard).join('');
+}
+updateStats();
+}
+
+function openModal(id){
+const d=DATA.find(x=>x.id===id);
+if(!d)return;
+document.getElementById('modalPoster').src=d.poster;
+document.getElementById('modalTitle').textContent=d.title;
+document.getElementById('modalMeta').innerHTML=`
+<span class="badge ${d.type==='movie'?'badge-movie':'badge-tv'}">${d.type==='movie'?'🎬 Movie':'📺 TV'}</span>
+<span>${d.year}</span>
+<span class="rating">⭐ ${d.rating}</span>
+${d.runtime?`<span>${d.runtime} min</span>`:''}
+<span>${d.lang.toUpperCase()}</span>
+${d.director?`<span>🎬 ${d.director}</span>`:''}
+`;
+document.getElementById('modalOverview').textContent=d.overview;
+document.getElementById('modalTags').innerHTML=d.tags.map(t=>`<span class="tag">${t}</span>`).join('');
+let actions=`<button class="btn-seen" onclick="toggleSeen(${d.id}); openModal(${d.id})">${seen[d.id]?'✅ Seen':'👁️ Mark Seen'}</button>`;
+if(d.imdb)actions+=`<a class="btn-link" href="https://www.imdb.com/title/${d.imdb}" target="_blank">IMDb ↗</a>`;
+if(d.trailer)actions+=`<a class="btn-link" href="${d.trailer}" target="_blank">▶ Trailer</a>`;
+if(d.cast)actions+=`<span style="font-size:.8rem;color:var(--text-dim);margin-top:4px;display:block;width:100%">🎭 ${d.cast}</span>`;
+document.getElementById('modalActions').innerHTML=actions;
+document.getElementById('modal').classList.add('open');
+}
+
+function closeModal(){document.getElementById('modal').classList.remove('open')}
+
+// Event listeners
+document.getElementById('search').addEventListener('input',e=>{searchQuery=e.target.value;render()});
+document.getElementById('sortBy').addEventListener('change',e=>{sortBy=e.target.value;render()});
+document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+
+function setupFilterGroup(groupId,filterKey){
+document.getElementById(groupId).addEventListener('click',e=>{
+const btn=e.target.closest('.fbtn');
+if(!btn)return;
+document.querySelectorAll(`#${groupId} .fbtn`).forEach(b=>b.classList.remove('active','active-alt','active-green'));
+btn.classList.add('active');
+currentFilters[filterKey]=btn.dataset.val==='0'?0:isNaN(btn.dataset.val)?btn.dataset.val:parseFloat(btn.dataset.val);
+render();
+});
+}
+
+setupFilterGroup('typeFilter','type');
+setupFilterGroup('langFilter','lang');
+setupFilterGroup('decadeFilter','decade');
+setupFilterGroup('ratingFilter','rating');
+setupFilterGroup('seenFilter','seen');
+
+render();
+</script>
+</body>
+</html>
