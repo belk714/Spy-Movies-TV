@@ -105,6 +105,7 @@ a{color:var(--accent2);text-decoration:none}
 <span class="stat">✅ <b id="seenCount">0</b> seen</span>
 <span class="stat">📋 <b id="unseenCount">0</b> to watch</span>
 <span class="stat">⭐ <b id="avgRating">0</b> avg rating</span>
+<span class="stat" id="syncStatus">☁️ —</span>
 </div>
 </div>
 
@@ -296,13 +297,64 @@ let currentFilters={type:'all',lang:'all',decade:'all',rating:0,seen:'all'};
 let searchQuery='';
 let sortBy='rating-desc';
 
+const SYNC_API='https://spy-movies-api.belk714.workers.dev';
+const SYNC_PIN='7714';
+let syncTimeout=null;
+
+function setSyncStatus(icon,text){document.getElementById('syncStatus').textContent=icon+' '+text}
+
 function saveSeen(){localStorage.setItem('spy-seen',JSON.stringify(seen))}
+
+function seenToArray(){return Object.keys(seen).filter(k=>seen[k]).map(Number)}
+function arrayToSeen(arr){const s={};arr.forEach(id=>{s[id]=true});return s}
+
+function scheduleSync(){
+clearTimeout(syncTimeout);
+syncTimeout=setTimeout(pushSeen,1000);
+}
+
+async function pushSeen(){
+setSyncStatus('⏳','syncing...');
+try{
+const res=await fetch(SYNC_API+'/seen?user=default',{
+method:'PUT',
+headers:{'Content-Type':'application/json','X-Pin':SYNC_PIN},
+body:JSON.stringify(seenToArray())
+});
+if(res.ok){setSyncStatus('☁️','synced')}
+else{setSyncStatus('⚠️','sync error')}
+}catch(e){setSyncStatus('⚠️','offline')}
+}
+
+async function pullAndMergeSeen(){
+setSyncStatus('⏳','loading...');
+try{
+const res=await fetch(SYNC_API+'/seen?user=default');
+if(res.ok){
+const remote=await res.json();
+const remoteSeen=arrayToSeen(remote);
+// merge: union of local and remote
+let changed=false;
+for(const id of Object.keys(remoteSeen)){
+if(!seen[id]){seen[id]=true;changed=true}
+}
+// check if remote is missing local items
+const localArr=seenToArray();
+const remoteSet=new Set(remote);
+const needsPush=localArr.some(id=>!remoteSet.has(id));
+saveSeen();
+if(changed)render();
+if(needsPush||changed){await pushSeen()}
+else{setSyncStatus('☁️','synced')}
+}else{setSyncStatus('⚠️','sync error')}
+}catch(e){setSyncStatus('⚠️','offline')}
+}
 
 function toggleSeen(id,e){
 if(e)e.stopPropagation();
 seen[id]=!seen[id];
 if(!seen[id])delete seen[id];
-saveSeen();render();
+saveSeen();render();scheduleSync();
 }
 
 function updateStats(){
@@ -441,6 +493,7 @@ render();
 });
 
 render();
+pullAndMergeSeen();
 </script>
 </body>
 </html>
