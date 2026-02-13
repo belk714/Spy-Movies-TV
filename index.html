@@ -402,7 +402,6 @@ return 0;
 function renderCard(d){
 const isSeen=seen[d.id];
 return`<div class="card ${isSeen?'seen':''}" onclick="openModal(${d.id})">
-<div class="seen-badge">✅ Seen</div>
 <div class="card-top">
 <img class="poster" src="${d.poster}" alt="${d.title}" loading="lazy" onerror="this.outerHTML='<div class=poster-placeholder>🎬</div>'">
 <div class="card-info">
