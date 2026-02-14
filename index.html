@@ -527,20 +527,20 @@ const TMDB_IMG='https://image.tmdb.org/t/p/w92';
 const providerCache={};
 const tmdbIdCache={};
 const STREAM_PLATFORMS=[
-{id:8,name:'Netflix',logo:'/t2yyOv40HZeVlLjYsCsPHnWLk4W.jpg'},
-{id:350,name:'Apple TV+',logo:'/6uhKBfmtzFqOcLousHwZuzcrScK.jpg'},
-{id:9,name:'Amazon Prime Video',logo:'/emthp39XA2YScoYL1p0sdbAH2WA.jpg'},
-{id:15,name:'Hulu',logo:'/zxrVdFjIjLqkfnwyghnfywTn3Lh.jpg'},
-{id:1899,name:'Max',logo:'/6Q3YKUNA3GapSRAibEjOEbiFLCn.jpg'},
-{id:531,name:'Paramount+',logo:'/xbhHHa1YVI24G44uUQg1EjSXR8l.jpg'},
-{id:386,name:'Peacock',logo:'/8VCV78prwd9QzZnEGQ9rTvwMlRa.jpg'},
-{id:337,name:'Disney+',logo:'/7rwgEs15tFwyR9NPQ5vpzxTj19Q.jpg'}
+{id:8,name:'Netflix',icon:'🔴'},
+{id:350,name:'Apple TV+',icon:'🍎'},
+{id:9,name:'Prime Video',icon:'📦'},
+{id:15,name:'Hulu',icon:'🟢'},
+{id:1899,name:'Max',icon:'🟣'},
+{id:531,name:'Paramount+',icon:'⛰️'},
+{id:386,name:'Peacock',icon:'🦚'},
+{id:337,name:'Disney+',icon:'✨'}
 ];
 let activeStreamFilters=new Set();
 
 // Build streaming dropdown
 const streamDD=document.getElementById('streamDropdown');
-streamDD.innerHTML=STREAM_PLATFORMS.map(p=>`<div class="stream-opt" data-pid="${p.id}"><span class="check">✓</span><img src="${TMDB_IMG}${p.logo}" alt="${p.name}">${p.name}</div>`).join('');
+streamDD.innerHTML=STREAM_PLATFORMS.map(p=>`<div class="stream-opt" data-pid="${p.id}"><span class="check">✓</span><span>${p.icon}</span> ${p.name}</div>`).join('');
 
 document.getElementById('streamToggle').addEventListener('click',e=>{
 e.stopPropagation();
