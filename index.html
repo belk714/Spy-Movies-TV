@@ -106,7 +106,7 @@ a{color:var(--accent2);text-decoration:none}
 .stream-opt{display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:.8rem;color:var(--text-dim);transition:background .15s}
 .stream-opt:hover{background:var(--input-bg)}
 .stream-opt.checked{color:var(--text)}
-.stream-opt .check{width:16px;height:16px;border-radius:4px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.65rem;flex-shrink:0}
+.stream-opt .check{width:16px;height:16px;border-radius:4px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.65rem;flex-shrink:0;color:transparent}
 .stream-opt.checked .check{background:var(--accent2);border-color:var(--accent2);color:#fff}
 .stream-opt img{width:20px;height:20px;border-radius:4px}
 
@@ -625,14 +625,11 @@ if(prov.flatrate.length>0){
 prov.flatrate.slice(0,5).forEach(p=>{
 html+=`<img class="prov-logo" src="${TMDB_IMG}${p.logo_path}" alt="${p.provider_name}" title="${p.provider_name}">`;
 });
-}else if(prov.rent.length>0){
-html+='<span class="prov-rent">Rent';
-prov.rent.slice(0,3).forEach(p=>{
-html+=`<img class="prov-logo" src="${TMDB_IMG}${p.logo_path}" alt="${p.provider_name}" title="${p.provider_name}">`;
-});
-html+='</span>';
+}else if(prov.link){
+html+=`<a class="prov-link" href="${prov.link}" target="_blank" style="font-size:.7rem">Check rental prices ↗</a>`;
+}else{
+html+='<span style="font-size:.68rem;color:var(--text-dim)">Not streaming</span>';
 }
-if(prov.link)html+=`<a class="prov-link" href="${prov.link}" target="_blank">JustWatch ↗</a>`;
 html+='</div>';
 return html;
 }
@@ -648,21 +645,11 @@ html+=`<img class="prov-logo" src="${TMDB_IMG}${p.logo_path}" alt="${p.provider_
 });
 html+='</div>';
 }
-if(prov.rent.length>0){
-html+='<div class="modal-providers"><span class="modal-prov-label">💲 Rent from:</span>';
-prov.rent.forEach(p=>{
-html+=`<img class="prov-logo" src="${TMDB_IMG}${p.logo_path}" alt="${p.provider_name}" title="${p.provider_name}">`;
-});
-html+='</div>';
+if(prov.flatrate.length===0&&prov.link){
+html+=`<div class="modal-providers"><span class="modal-prov-label">Not included in any subscription.</span> <a class="prov-link" href="${prov.link}" target="_blank" style="font-size:.8rem">Check rental prices on JustWatch ↗</a></div>`;
+}else if(prov.link){
+html+=`<div class="modal-providers"><a class="prov-link" href="${prov.link}" target="_blank" style="font-size:.8rem">View on JustWatch ↗</a></div>`;
 }
-if(prov.buy.length>0){
-html+='<div class="modal-providers"><span class="modal-prov-label">🛒 Buy from:</span>';
-prov.buy.forEach(p=>{
-html+=`<img class="prov-logo" src="${TMDB_IMG}${p.logo_path}" alt="${p.provider_name}" title="${p.provider_name}">`;
-});
-html+='</div>';
-}
-if(prov.link)html+=`<a class="prov-link" href="${prov.link}" target="_blank" style="font-size:.8rem">View on JustWatch ↗</a>`;
 if(!prov.flatrate.length&&!prov.rent.length&&!prov.buy.length){
 html='<div class="modal-providers"><span style="font-size:.8rem;color:var(--text-dim)">No streaming info available</span></div>';
 }
