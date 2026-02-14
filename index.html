@@ -86,6 +86,30 @@ a{color:var(--accent2);text-decoration:none}
 .fbtn{padding:5px 10px;font-size:.75rem}
 }
 
+/* Streaming providers */
+.providers{display:flex;align-items:center;gap:6px;padding:4px 12px 0;flex-wrap:wrap;min-height:28px}
+.providers.loading{color:var(--text-dim);font-size:.7rem}
+.prov-logo{width:24px;height:24px;border-radius:6px;object-fit:cover;title:attr(alt)}
+.prov-link{font-size:.65rem;color:var(--accent2);text-decoration:none;margin-left:auto}
+.prov-link:hover{text-decoration:underline}
+.prov-rent{font-size:.68rem;color:var(--text-dim);display:flex;align-items:center;gap:4px}
+.prov-rent .prov-logo{width:20px;height:20px;border-radius:4px}
+.modal-providers{margin:12px 0;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.modal-providers .prov-logo{width:32px;height:32px;border-radius:8px}
+.modal-prov-label{font-size:.75rem;color:var(--text-dim);margin-right:4px;width:100%}
+.stream-filter{position:relative}
+.stream-toggle{padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:var(--input-bg);color:var(--text-dim);font-size:.8rem;cursor:pointer;transition:all .2s;white-space:nowrap}
+.stream-toggle:hover{border-color:var(--accent2);color:var(--text)}
+.stream-toggle.has-active{background:var(--accent2);border-color:var(--accent2);color:#fff}
+.stream-dropdown{display:none;position:absolute;top:100%;left:0;margin-top:6px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:8px 0;min-width:200px;z-index:50;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.stream-dropdown.open{display:block}
+.stream-opt{display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:.8rem;color:var(--text-dim);transition:background .15s}
+.stream-opt:hover{background:var(--input-bg)}
+.stream-opt.checked{color:var(--text)}
+.stream-opt .check{width:16px;height:16px;border-radius:4px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.65rem;flex-shrink:0}
+.stream-opt.checked .check{background:var(--accent2);border-color:var(--accent2);color:#fff}
+.stream-opt img{width:20px;height:20px;border-radius:4px}
+
 /* Scrollbar */
 ::-webkit-scrollbar{width:6px}
 ::-webkit-scrollbar-track{background:var(--bg)}
@@ -164,6 +188,12 @@ a{color:var(--accent2);text-decoration:none}
 <button class="fbtn active" data-val="all">All</button>
 <button class="fbtn" data-val="seen">✅ Seen</button>
 <button class="fbtn" data-val="unseen">📋 Unseen</button>
+</div>
+<div class="filter-sep"></div>
+<span class="filter-label">Streaming</span>
+<div class="stream-filter" id="streamFilter">
+<button class="stream-toggle" id="streamToggle">📺 Any Platform ▾</button>
+<div class="stream-dropdown" id="streamDropdown"></div>
 </div>
 </div>
 </div>
@@ -489,6 +519,281 @@ setupFilterGroup('seenFilter','seen');
 document.getElementById('decadeFilter').addEventListener('change',e=>{
 currentFilters.decade=e.target.value;
 render();
+});
+
+// === STREAMING PROVIDERS ===
+const TMDB_KEY='d56e51fb77b081a9cb5192eaaa7823ad';
+const TMDB_IMG='https://image.tmdb.org/t/p/original';
+const providerCache={};
+const tmdbIdCache={};
+const STREAM_PLATFORMS=[
+{id:8,name:'Netflix',logo:'/t2yyOv40HZeVlLjYsCsPHnWLk4W.jpg'},
+{id:350,name:'Apple TV+',logo:'/6uhKBfmtzFqOcLousHwZuzcrScK.jpg'},
+{id:9,name:'Amazon Prime Video',logo:'/emthp39XA2YScoYL1p0sdbAH2WA.jpg'},
+{id:15,name:'Hulu',logo:'/zxrVdFjIjLqkfnwyghnfywTn3Lh.jpg'},
+{id:1899,name:'Max',logo:'/6Q3YKUNA3GapSRAibEjOEbiFLCn.jpg'},
+{id:531,name:'Paramount+',logo:'/xbhHHa1YVI24G44uUQg1EjSXR8l.jpg'},
+{id:386,name:'Peacock',logo:'/8VCV78prwd9QzZnEGQ9rTvwMlRa.jpg'},
+{id:337,name:'Disney+',logo:'/7rwgEs15tFwyR9NPQ5vpzxTj19Q.jpg'}
+];
+let activeStreamFilters=new Set();
+
+// Build streaming dropdown
+const streamDD=document.getElementById('streamDropdown');
+streamDD.innerHTML=STREAM_PLATFORMS.map(p=>`<div class="stream-opt" data-pid="${p.id}"><span class="check">✓</span><img src="${TMDB_IMG}${p.logo}" alt="${p.name}">${p.name}</div>`).join('');
+
+document.getElementById('streamToggle').addEventListener('click',e=>{
+e.stopPropagation();
+streamDD.classList.toggle('open');
+});
+document.addEventListener('click',()=>streamDD.classList.remove('open'));
+streamDD.addEventListener('click',e=>{
+e.stopPropagation();
+const opt=e.target.closest('.stream-opt');
+if(!opt)return;
+const pid=parseInt(opt.dataset.pid);
+if(activeStreamFilters.has(pid)){activeStreamFilters.delete(pid);opt.classList.remove('checked')}
+else{activeStreamFilters.add(pid);opt.classList.add('checked')}
+const toggle=document.getElementById('streamToggle');
+if(activeStreamFilters.size>0){
+toggle.classList.add('has-active');
+toggle.textContent='📺 '+activeStreamFilters.size+' Platform'+(activeStreamFilters.size>1?'s':'')+' ▾';
+}else{
+toggle.classList.remove('has-active');
+toggle.textContent='📺 Any Platform ▾';
+}
+render();
+});
+
+// Restore from sessionStorage
+try{
+const cached=JSON.parse(sessionStorage.getItem('spy-providers')||'{}');
+Object.assign(providerCache,cached);
+const cachedIds=JSON.parse(sessionStorage.getItem('spy-tmdb-ids')||'{}');
+Object.assign(tmdbIdCache,cachedIds);
+}catch(e){}
+
+function saveProviderCache(){
+try{sessionStorage.setItem('spy-providers',JSON.stringify(providerCache));
+sessionStorage.setItem('spy-tmdb-ids',JSON.stringify(tmdbIdCache));}catch(e){}
+}
+
+async function getTmdbId(item){
+if(tmdbIdCache[item.imdb])return tmdbIdCache[item.imdb];
+try{
+const res=await fetch(`https://api.themoviedb.org/3/find/${item.imdb}?api_key=${TMDB_KEY}&external_source=imdb_id`);
+const data=await res.json();
+const results=data.movie_results||data.tv_results||[];
+if(results.length>0){
+tmdbIdCache[item.imdb]={id:results[0].id,type:data.movie_results&&data.movie_results.length>0?'movie':'tv'};
+}else if(data.tv_results&&data.tv_results.length>0){
+tmdbIdCache[item.imdb]={id:data.tv_results[0].id,type:'tv'};
+}
+saveProviderCache();
+return tmdbIdCache[item.imdb];
+}catch(e){return null}
+}
+
+async function fetchProviders(item){
+if(providerCache[item.id])return providerCache[item.id];
+const tmdb=await getTmdbId(item);
+if(!tmdb)return null;
+try{
+const endpoint=tmdb.type==='tv'?'tv':'movie';
+const res=await fetch(`https://api.themoviedb.org/3/${endpoint}/${tmdb.id}/watch/providers?api_key=${TMDB_KEY}`);
+const data=await res.json();
+const us=data.results&&data.results.US;
+providerCache[item.id]={
+flatrate:(us&&us.flatrate)||[],
+rent:(us&&us.rent)||[],
+buy:(us&&us.buy)||[],
+link:(us&&us.link)||null
+};
+saveProviderCache();
+return providerCache[item.id];
+}catch(e){return null}
+}
+
+function renderProviders(itemId){
+const prov=providerCache[itemId];
+if(!prov)return'<div class="providers loading">Loading streaming...</div>';
+if(prov.flatrate.length===0&&prov.rent.length===0&&prov.buy.length===0){
+return'<div class="providers"><span style="font-size:.68rem;color:var(--text-dim)">No streaming info</span></div>';
+}
+let html='<div class="providers">';
+if(prov.flatrate.length>0){
+prov.flatrate.slice(0,5).forEach(p=>{
+html+=`<img class="prov-logo" src="${TMDB_IMG}${p.logo_path}" alt="${p.provider_name}" title="${p.provider_name}">`;
+});
+}else if(prov.rent.length>0){
+html+='<span class="prov-rent">Rent';
+prov.rent.slice(0,3).forEach(p=>{
+html+=`<img class="prov-logo" src="${TMDB_IMG}${p.logo_path}" alt="${p.provider_name}" title="${p.provider_name}">`;
+});
+html+='</span>';
+}
+if(prov.link)html+=`<a class="prov-link" href="${prov.link}" target="_blank">JustWatch ↗</a>`;
+html+='</div>';
+return html;
+}
+
+function renderModalProviders(itemId){
+const prov=providerCache[itemId];
+if(!prov)return'<div class="modal-providers"><span style="font-size:.8rem;color:var(--text-dim)">Loading streaming info...</span></div>';
+let html='';
+if(prov.flatrate.length>0){
+html+='<div class="modal-providers"><span class="modal-prov-label">📺 Stream on:</span>';
+prov.flatrate.forEach(p=>{
+html+=`<img class="prov-logo" src="${TMDB_IMG}${p.logo_path}" alt="${p.provider_name}" title="${p.provider_name}">`;
+});
+html+='</div>';
+}
+if(prov.rent.length>0){
+html+='<div class="modal-providers"><span class="modal-prov-label">💲 Rent from:</span>';
+prov.rent.forEach(p=>{
+html+=`<img class="prov-logo" src="${TMDB_IMG}${p.logo_path}" alt="${p.provider_name}" title="${p.provider_name}">`;
+});
+html+='</div>';
+}
+if(prov.buy.length>0){
+html+='<div class="modal-providers"><span class="modal-prov-label">🛒 Buy from:</span>';
+prov.buy.forEach(p=>{
+html+=`<img class="prov-logo" src="${TMDB_IMG}${p.logo_path}" alt="${p.provider_name}" title="${p.provider_name}">`;
+});
+html+='</div>';
+}
+if(prov.link)html+=`<a class="prov-link" href="${prov.link}" target="_blank" style="font-size:.8rem">View on JustWatch ↗</a>`;
+if(!prov.flatrate.length&&!prov.rent.length&&!prov.buy.length){
+html='<div class="modal-providers"><span style="font-size:.8rem;color:var(--text-dim)">No streaming info available</span></div>';
+}
+return html;
+}
+
+// Lazy load providers with IntersectionObserver
+let providerObserver;
+function setupProviderObserver(){
+if(providerObserver)providerObserver.disconnect();
+providerObserver=new IntersectionObserver((entries)=>{
+entries.forEach(entry=>{
+if(entry.isIntersecting){
+const card=entry.target;
+const itemId=parseInt(card.dataset.itemId);
+if(itemId&&!providerCache[itemId]){
+const item=DATA.find(d=>d.id===itemId);
+if(item)fetchProviders(item).then(()=>{
+const provEl=card.querySelector('.providers');
+if(provEl)provEl.outerHTML=renderProviders(itemId);
+});
+}else if(providerCache[itemId]){
+const provEl=card.querySelector('.providers');
+if(provEl&&provEl.classList.contains('loading'))provEl.outerHTML=renderProviders(itemId);
+}
+providerObserver.unobserve(card);
+}
+});
+},{rootMargin:'200px'});
+document.querySelectorAll('.card[data-item-id]').forEach(card=>providerObserver.observe(card));
+}
+
+// Override getFiltered to include streaming filter
+const _origGetFiltered=getFiltered;
+const getFilteredWithStreaming=function(){
+let items=_origGetFiltered();
+if(activeStreamFilters.size>0){
+items=items.filter(d=>{
+const prov=providerCache[d.id];
+if(!prov)return false; // not loaded yet - hide until loaded
+return prov.flatrate.some(p=>activeStreamFilters.has(p.provider_id));
+});
+}
+return items;
+};
+// Monkey-patch
+window.getFiltered=getFilteredWithStreaming;
+
+// Prefetch providers for visible items when streaming filter is active
+async function prefetchAllProviders(){
+for(let i=0;i<DATA.length;i++){
+if(!providerCache[DATA[i].id]){
+await fetchProviders(DATA[i]);
+await new Promise(r=>setTimeout(r,100)); // rate limit
+}
+}
+render();
+}
+
+// Override renderCard to include providers
+const _origRenderCard=renderCard;
+window.renderCard=function(d){
+const isSeen=seen[d.id];
+return`<div class="card ${isSeen?'seen':''}" data-item-id="${d.id}" onclick="openModal(${d.id})">
+<div class="card-top">
+<img class="poster" src="${d.poster}" alt="${d.title}" loading="lazy" onerror="this.outerHTML='<div class=poster-placeholder>🎬</div>'">
+<div class="card-info">
+<div class="card-title">${d.title}</div>
+<div class="card-meta">
+<span class="badge ${d.type==='movie'?'badge-movie':'badge-tv'}">${d.type==='movie'?'🎬 Movie':'📺 TV'}</span>
+<span>${d.year}</span>
+<span class="rating">⭐ ${d.rating}</span>
+${d.rt!=null?`<span class="rating" style="color:#fa3e35">🍅 ${d.rt}%</span>`:''}
+${d.runtime?`<span>${d.runtime}m</span>`:''}
+<span>${d.lang.toUpperCase()}</span>
+</div>
+<p class="card-overview">${d.overview}</p>
+</div>
+</div>
+${renderProviders(d.id)}
+<div class="card-bottom">
+<div class="tags">${d.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>
+<div class="card-actions">
+<button class="btn-seen" onclick="toggleSeen(${d.id},event)">${isSeen?'✅ Seen':'👁️ Mark Seen'}</button>
+</div>
+</div>
+</div>`;
+};
+
+// Override openModal to include providers
+const _origOpenModal=openModal;
+window.openModal=function(id){
+_origOpenModal(id);
+const d=DATA.find(x=>x.id===id);
+if(!d)return;
+// Add providers to modal
+const actionsEl=document.getElementById('modalActions');
+let provHtml=renderModalProviders(id);
+const existingProv=document.getElementById('modalProviders');
+if(existingProv)existingProv.outerHTML=`<div id="modalProviders">${provHtml}</div>`;
+else actionsEl.insertAdjacentHTML('beforebegin',`<div id="modalProviders">${provHtml}</div>`);
+// Fetch if not cached
+if(!providerCache[id]){
+fetchProviders(d).then(()=>{
+const mp=document.getElementById('modalProviders');
+if(mp)mp.innerHTML=renderModalProviders(id);
+});
+}
+};
+
+// Override render to setup observer after
+const _origRender=render;
+window.render=function(){
+const filtered=getSorted(window.getFiltered());
+const grid=document.getElementById('grid');
+if(filtered.length===0){
+grid.innerHTML='<div class="no-results">🔍 No titles match your filters. Try adjusting your search.</div>';
+}else{
+grid.innerHTML=filtered.map(window.renderCard).join('');
+}
+updateStats();
+setTimeout(setupProviderObserver,50);
+};
+
+// When streaming filter is activated, prefetch all
+const _origStreamClick=streamDD.onclick;
+streamDD.addEventListener('click',()=>{
+if(activeStreamFilters.size>0){
+const needsFetch=DATA.some(d=>!providerCache[d.id]);
+if(needsFetch)prefetchAllProviders();
+}
 });
 
 render();
