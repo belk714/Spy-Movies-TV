@@ -172,19 +172,10 @@ a{color:var(--accent2);text-decoration:none}
 </div>
 <div class="filter-sep"></div>
 <span class="filter-label">Decade</span>
-<select class="sort-select" id="decadeFilter">
-<option value="all">All Decades</option>
-<option value="1930">1930s</option>
-<option value="1940">1940s</option>
-<option value="1950">1950s</option>
-<option value="1960">1960s</option>
-<option value="1970">1970s</option>
-<option value="1980">1980s</option>
-<option value="1990">1990s</option>
-<option value="2000">2000s</option>
-<option value="2010">2010s</option>
-<option value="2020">2020s</option>
-</select>
+<div class="stream-filter" id="decadeFilterWrap">
+<button class="stream-toggle" id="decadeToggle">📅 Any Decade ▾</button>
+<div class="stream-dropdown" id="decadeDropdown"></div>
+</div>
 <div class="filter-sep"></div>
 <span class="filter-label">Min Rating</span>
 <div class="filter-group" id="ratingFilter">
@@ -202,12 +193,9 @@ a{color:var(--accent2);text-decoration:none}
 </div>
 <div class="filter-sep"></div>
 <span class="filter-label">Spy Index</span>
-<div class="filter-group spy-filter" id="spyFilter">
-<button class="fbtn active" data-val="all">All</button>
-<button class="fbtn" data-val="pure">🕵️ Pure Spy</button>
-<button class="fbtn" data-val="thriller">🔫 Spy Thriller</button>
-<button class="fbtn" data-val="world">🌐 Spy World</button>
-<button class="fbtn" data-val="adjacent">🎭 Spy Adjacent</button>
+<div class="stream-filter" id="spyFilterWrap">
+<button class="stream-toggle" id="spyToggle">🕵️ Any Tier ▾</button>
+<div class="stream-dropdown" id="spyDropdown"></div>
 </div>
 <div class="filter-sep"></div>
 <span class="filter-label">Streaming</span>
@@ -477,14 +465,14 @@ if(!hay.includes(q))return false;
 if(currentFilters.type!=='all'&&d.type!==currentFilters.type)return false;
 if(currentFilters.lang==='en'&&d.lang!=='en')return false;
 if(currentFilters.lang==='intl'&&d.lang==='en')return false;
-if(currentFilters.decade!=='all'){
-const dec=parseInt(currentFilters.decade);
-if(d.year<dec||d.year>=dec+10)return false;
+if(activeDecadeFilters.size>0){
+const dec=Math.floor(d.year/10)*10;
+if(!activeDecadeFilters.has(String(dec)))return false;
 }
 if(d.rating<currentFilters.rating)return false;
 if(currentFilters.seen==='seen'&&!seen[d.id])return false;
 if(currentFilters.seen==='unseen'&&seen[d.id])return false;
-if(currentFilters.spy!=='all'&&d.spy!==currentFilters.spy)return false;
+if(activeSpyFilters.size>0&&!activeSpyFilters.has(d.spy))return false;
 return true;
 });
 }
@@ -591,22 +579,44 @@ setupFilterGroup('langFilter','lang');
 setupFilterGroup('ratingFilter','rating');
 setupFilterGroup('seenFilter','seen');
 
-// Spy Index filter with colored active states
-document.getElementById('spyFilter').addEventListener('click',e=>{
-const btn=e.target.closest('.fbtn');
-if(!btn)return;
-document.querySelectorAll('#spyFilter .fbtn').forEach(b=>{b.classList.remove('active','active-spy-pure','active-spy-thriller','active-spy-world','active-spy-adjacent')});
-const v=btn.dataset.val;
-if(v==='all')btn.classList.add('active');
-else btn.classList.add('active-spy-'+v);
-currentFilters.spy=v;
-render();
+// Decade dropdown (checkbox style)
+const DECADES=[{val:'2020',label:'2020s'},{val:'2010',label:'2010s'},{val:'2000',label:'2000s'},{val:'1990',label:'1990s'},{val:'1980',label:'1980s'},{val:'1970',label:'1970s'},{val:'1960',label:'1960s'},{val:'1950',label:'1950s'},{val:'1940',label:'1940s'},{val:'1930',label:'1930s'}];
+let activeDecadeFilters=new Set();
+const decadeDD=document.getElementById('decadeDropdown');
+decadeDD.innerHTML=DECADES.map(d=>`<div class="stream-opt" data-val="${d.val}"><span class="check">✓</span>${d.label}</div>`).join('');
+document.getElementById('decadeToggle').addEventListener('click',e=>{
+  e.stopPropagation();decadeDD.classList.toggle('open');spyDD.classList.remove('open');streamDD.classList.remove('open');
+});
+decadeDD.addEventListener('click',e=>{
+  e.stopPropagation();
+  const opt=e.target.closest('.stream-opt');if(!opt)return;
+  const val=opt.dataset.val;
+  if(activeDecadeFilters.has(val)){activeDecadeFilters.delete(val);opt.classList.remove('checked')}
+  else{activeDecadeFilters.add(val);opt.classList.add('checked')}
+  const toggle=document.getElementById('decadeToggle');
+  if(activeDecadeFilters.size>0){toggle.classList.add('has-active');toggle.textContent='📅 '+activeDecadeFilters.size+' Decade'+(activeDecadeFilters.size>1?'s':'')+ ' ▾';}
+  else{toggle.classList.remove('has-active');toggle.textContent='📅 Any Decade ▾';}
+  render();
 });
 
-// Decade dropdown
-document.getElementById('decadeFilter').addEventListener('change',e=>{
-currentFilters.decade=e.target.value;
-render();
+// Spy Index dropdown (checkbox style)
+const SPY_TIERS=[{val:'pure',label:'🕵️ Pure Spy'},{val:'thriller',label:'🔫 Spy Thriller'},{val:'world',label:'🌐 Spy World'},{val:'adjacent',label:'🎭 Spy Adjacent'}];
+let activeSpyFilters=new Set();
+const spyDD=document.getElementById('spyDropdown');
+spyDD.innerHTML=SPY_TIERS.map(t=>`<div class="stream-opt" data-val="${t.val}"><span class="check">✓</span>${t.label}</div>`).join('');
+document.getElementById('spyToggle').addEventListener('click',e=>{
+  e.stopPropagation();spyDD.classList.toggle('open');decadeDD.classList.remove('open');streamDD.classList.remove('open');
+});
+spyDD.addEventListener('click',e=>{
+  e.stopPropagation();
+  const opt=e.target.closest('.stream-opt');if(!opt)return;
+  const val=opt.dataset.val;
+  if(activeSpyFilters.has(val)){activeSpyFilters.delete(val);opt.classList.remove('checked')}
+  else{activeSpyFilters.add(val);opt.classList.add('checked')}
+  const toggle=document.getElementById('spyToggle');
+  if(activeSpyFilters.size>0){toggle.classList.add('has-active');toggle.textContent='🕵️ '+activeSpyFilters.size+' Tier'+(activeSpyFilters.size>1?'s':'')+ ' ▾';}
+  else{toggle.classList.remove('has-active');toggle.textContent='🕵️ Any Tier ▾';}
+  render();
 });
 
 // === STREAMING PROVIDERS ===
@@ -632,9 +642,9 @@ streamDD.innerHTML=STREAM_PLATFORMS.map(p=>`<div class="stream-opt" data-pid="${
 
 document.getElementById('streamToggle').addEventListener('click',e=>{
 e.stopPropagation();
-streamDD.classList.toggle('open');
+streamDD.classList.toggle('open');decadeDD.classList.remove('open');spyDD.classList.remove('open');
 });
-document.addEventListener('click',()=>streamDD.classList.remove('open'));
+document.addEventListener('click',()=>{streamDD.classList.remove('open');decadeDD.classList.remove('open');spyDD.classList.remove('open');});
 streamDD.addEventListener('click',e=>{
 e.stopPropagation();
 const opt=e.target.closest('.stream-opt');
